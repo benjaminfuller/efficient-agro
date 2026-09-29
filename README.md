@@ -1,7 +1,7 @@
 # efficient-agro
 
 Oblivious multidimensional range aggregation on the Rust Path OSAM+ backend.
-The crate depends on the local checkout `../crypto-sam/rust_osam_plus` (sam-model
+The crate depends on the local checkout `../rust_osam_plus` (sam-model
 and osam_plus) through path dependencies, because the balanced r-ary pointer
 lives there (`crates/sam-model/src/pointer/balanced.rs`). Two schemes, built on
 the same backend so they can be compared directly:
@@ -71,12 +71,15 @@ Rust >= 1.89 (the backend's MSRV). The first build fetches the backend from
 GitHub.
 
 ```bash
-cargo build --release        # needs ../crypto-sam/rust_osam_plus next to this repo
+cargo build --release        # needs ../rust_osam_plus next to this repo
 python3 tools/convert_datasets.py datasets/original datasets   # once: pickles -> .pts (datasets/ is not tracked)
 ./target/release/sparq_bench --dataset datasets/cali-1024x1024.pts --check
 ./target/release/sparq_bench --dataset datasets/cali-1024x1024.pts --crypto --fanin-cap 30
-./run_all.sh            # dry-run sweep of every dataset
-./run_all.sh --crypto   # encrypted sweep (large-memory server)
+./run_all.sh            # dry-run read counts: every dataset and tail, 1000 queries
+./run_all.sh --crypto   # encrypted timing/stash: small datasets, group + SPARQ
+                        # (+ semi on spitz and nh), 100 queries, 4 runs in parallel
+                        # (overrides at the top of run_all.sh: QUERIES, KINDS,
+                        # EXTRA_SEMI, LARGE, DATASETS, JOBS)
 cargo test --release    # randomized 1D/2D/3D correctness + constant-trace tests
 ```
 

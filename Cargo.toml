@@ -11,8 +11,8 @@ name = "efficient_agro"
 
 [dependencies]
 # The local rust_osam_plus checkout (which contains the balanced r-ary pointer).
-sam-model = { path = "../crypto-sam/rust_osam_plus/crates/sam-model" }
-osam_plus = { path = "../crypto-sam/rust_osam_plus" }
+sam-model = { path = "../rust_osam_plus/crates/sam-model" }
+osam_plus = { path = "../rust_osam_plus" }
 rand = "0.8"
 
 [profile.release]
