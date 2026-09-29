@@ -1,4 +1,0 @@
-config dataset=gowalla_2d_100k d=2 N=102843 n=6438x4500 values=hash16 queries=300 seed=1 crypto=false block_size=256 branching=62 fanin_cap=raw pad=Analytic
-build scheme=layered objects=944026 entries=465103 extra=copies:0/seg:0/wav:0/bst:9001 build_s=1.51 max_fanin=casc:952/dims:952/wav:0 heights=skel:13/bst:13/seg:0/wav:16 sigma=51977
-budget scheme=layered kind=group analytic_reads=186
-result scheme=layered kind=group mode=dry-run queries=300 budget=186 real_mean=53.8 real_var=984.9 real_min=14 real_max=113 win10_max=81.3 win100_max=57.5 padded_per_query=186.0 overflows=0 rounds_mean=26.5 rounds_max=41 writes_per_query=237.5 ops_mean=291.3 ops_var=51326.1 ops_min=28 ops_max=850 ops_win100_max=319.6 ms_per_query=0.136 max_stash=0 checked=300 mismatches=0

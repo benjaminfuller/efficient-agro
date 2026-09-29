@@ -56,9 +56,9 @@ dereference can rewrite every off-path member without reading it.
   `CacheablePointerBackend`, so the library's `CachedPointers` client cache,
   the dry-run SAM and encrypted Path OSAM+ (`MULTI_WRITE_RARY`) all work
   unchanged. The cell codec (`BalancedCellValueCodec`) stores 4-byte
-  addresses, so a node cell is 6 + 8b bytes. **The default is b = 64** (needed
-  to keep the stash in check), which needs 1 KB blocks; so `--block-size`
-  defaults to 1024.
+  addresses, so a node cell is 6 + 8b bytes. **The defaults are 256 B blocks
+  and b = 30**, the largest fanout whose node cell (246 B) fits a 256 B block.
+  (128 B blocks allow b = 14; 1 KB blocks allow b = 126.)
 * Tests (`cargo test --lib balanced` in `crates/sam-model`): exact read counts for dereferences
   (b = 2..30, f = 1..952); 3,000 random copies, deletes, puts and gets per
   fanout, with exact costs and every alias checked; copies that grow the tree
@@ -101,10 +101,15 @@ The structure is always built in `DryRunSam` (no cryptography). With
 `--crypto`, the snapshot is installed into `PathOsamSam<.., B, Z=4, P=1>` with
 encryption on, the r-ary access strategy (`read_multi_paths`, local writes)
 and ordered eviction, exactly as `oblivious_graph_bench --crypto` does. The
-queries then run encrypted. Block size `--block-size 256|512|1024`, default
-1024. The largest object is about 190 B, and a pointer node cell is
-6 + 8b bytes: 518 B at the default b = 64. With `--branching 30`, 256 B blocks
-suffice.
+queries then run encrypted. Block size `--block-size 128|256|512|1024`,
+default 256. Objects use a compact encoding: zigzag varints for integers and
+pointer identifiers, and a one-byte tag for the MIN/MAX identity. The largest
+object cell is 96 B (a 3D list entry), SPARQ nodes are 50 B, and a pointer node
+cell is 6 + 8b bytes (246 B at b = 30). Every build checks the largest encoded
+cell of each kind against the block size (`cells ...` line), and fails if one
+does not fit. This is automatic in `--crypto` runs; use `--cell-sizes` for a
+dry-run. Each run also prints the encrypted tree's exact server storage
+(`storage ... server_bytes=`).
 
 ## Obliviousness: padding the whole trace
 
@@ -138,30 +143,44 @@ can reach (`max_fanin=casc:.../dims:...`). So no query can overflow, and
 `overflows=` stays at 0. (The splay-based `RaryPointer` used before had no
 such bound; see the theory note.)
 
-## Results with the balanced pointer (b = 64, dry-run, 500 queries, raw fan-in, all answers checked)
+## Results with the balanced pointer (b = 30, 256 B blocks, dry-run, 500 queries, raw fan-in, all answers checked)
 
 Proven per-query read budget, with the largest real read count in
-parentheses (`results/b64/`):
+parentheses (`results/b30/`):
 
 | dataset | SPARQ (group+semi) | layered group | layered semi | layered median | group vs SPARQ |
 |---|---|---|---|---|---|
 | amazon-books 1D | 51 | 30 (29) | 78 (77) | 82 (78) | 1.7x |
-| spitz 2D | 780 | 144 (87) | 1056 (288) | 1232 (342) | 5.4x |
-| cali 2D | 780 | 144 (89) | 1056 (427) | 1496 (447) | 5.4x |
-| gowalla 2D-50K | 1036 | 172 (96) | 1460 (384) | 2812 (499) | 6.0x |
-| gowalla 2D-100K | 1326 | 186 (113) | 1686 (526) | — | 7.1x |
-| nh 3D | 3059 | 786 (339) | 6162 (850) | 10866 (1250) | 3.9x |
-| gowalla 3D | 4181 | 1290 (216) | 7842 (1219) | — | 3.2x |
+| spitz 2D | 780 | 144 (87) | 1056 (290) | 1232 (344) | 5.4x |
+| cali 2D | 780 | 144 (90) | 1056 (427) | 2112 (448) | 5.4x |
+| gowalla 2D-50K | 1036 | 172 (97) | 1460 (384) | 2812 (499) | 6.0x |
+| gowalla 2D-100K | 1326 | 238 (116) | 1790 (535) | — | 5.6x |
+| nh 3D | 3059 | 1122 (340) | 6834 (850) | 11538 (1250) | 2.7x |
+| gowalla 3D | 4181 | 1338 (216) | 7890 (1222) | — | 3.1x |
 
-There were no overflows and no wrong answers. With b = 64, an entry with f <= 64
-aliases costs 2 reads, and one with f <= 4096 costs 3. The b = 30 runs are in
-`results/balanced/`.
+There were no overflows and no wrong answers.
 
-Encrypted Path OSAM+ (amazon-books, 20 queries, b = 64, 1 KB blocks): all
-answers correct, no overflows. The maximum stash was 3,619 blocks for the
-layered scheme and 1,224 for SPARQ. Installing the snapshot took 649 s on
-this 2-core VM. The median tails of gowalla 3D (15M wavelet entries) and
-gowalla 2D-100K need more than the VM's 6 GB.
+**Storage and bandwidth** (group tail only; both schemes at 256 B blocks). Storage
+is the encrypted tree's `server_bytes`. Bandwidth per query uses the SPARQ
+paper's accounting, padded reads x tree levels x block size. The "paper"
+columns are the SPARQ paper's Path ORAM table (256 B blocks).
+
+| dataset | storage: SPARQ paper / our SPARQ / layered | bandwidth per query: SPARQ paper / Demertzis (paper) / layered |
+|---|---|---|
+| Books 1D | 17 MB / 17 MB / 34 MB | 171 KB / 190 KB / 115 KB |
+| Spitz 2D | 69 MB / 34 MB / 34 MB | 3.4 MB / 408 KB / 553 KB |
+| cali 2D | 560 MB / 268 MB / 268 MB | 4.2 MB / 408 KB / 664 KB |
+| gowalla 2D-50K | 1.1 GB / 537 MB / 537 MB | 5.7 MB / 1.1 MB / 837 KB |
+| gowalla 2D-100K | 2.2 GB / 1.07 GB / 1.07 GB | 8.1 MB / 1.4 MB / 1.22 MB |
+| nh 3D | 278 MB / 134 MB / 268 MB | 17 MB / 665 KB / 5.2 MB |
+| gowalla 3D | 1.1 GB / 537 MB / 537 MB | 18 MB / 816 KB / 6.5 MB |
+
+Encrypted Path OSAM+ (20 queries, 256 B blocks; `results/b30/*.crypto.log`):
+all answers correct, no overflows. On amazon-books the maximum stash was
+3,619 blocks (1,224 for SPARQ). On spitz, a group query took 0.73 s
+against 2.65 s for SPARQ (stash 1,756 vs 1,249). The median tails of
+gowalla 3D and gowalla 2D-100K need more than the VM's 6 GB. The b = 64 / 1 KB
+runs are in `results/b64/`.
 
 ## Earlier results with the splay-based `RaryPointer` (dry-run, 500 queries, b = 30)
 

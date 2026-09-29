@@ -1,4 +1,0 @@
-config dataset=gowalla_3d_23k d=3 N=23044 n=33x97x101 values=hash16 queries=300 seed=1 crypto=false block_size=256 branching=62 fanin_cap=raw pad=Analytic
-build scheme=layered objects=287215 entries=208679 extra=copies:0/seg:0/wav:0/bst:203 build_s=0.25 max_fanin=casc:94/dims:53x94/wav:0 heights=skel:6x7/bst:7/seg:0/wav:15 sigma=19482
-budget scheme=layered kind=group analytic_reads=1290
-result scheme=layered kind=group mode=dry-run queries=300 budget=1290 real_mean=57.2 real_var=2587.4 real_min=13 real_max=216 win10_max=110.4 win100_max=61.9 padded_per_query=1290.0 overflows=0 rounds_mean=16.3 rounds_max=25 writes_per_query=128.6 ops_mean=185.8 ops_var=35104.9 ops_min=26 ops_max=903 ops_win100_max=201.1 ms_per_query=0.464 max_stash=0 checked=300 mismatches=0

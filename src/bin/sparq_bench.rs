@@ -7,14 +7,14 @@
 //! ```text
 //! sparq_bench --dataset datasets/cali-1024x1024.pts [--scheme layered|sparq|both]
 //!     [--kinds group,semi,quantile] [--queries 100] [--seed 1] [--values hash16|dataset]
-//!     [--crypto] [--block-size 256|512|1024] [--branching 64] [--fanin-cap K]
+//!     [--crypto] [--block-size 128|256|512|1024] [--branching 30] [--fanin-cap K]
 //!     [--pad analytic|none|N] [--stash-size 40] [--check] [--csv results.csv]
 //! ```
 
 use osam_plus::StashSize;
 use sam_model::pointer::FixedSizeCodec;
-use sam_model::pointer::BalancedCellValueCodec;
-use sam_model::{AccessPolicy, AccessStrategy, DryRunSam, PathOsamSam, SamError};
+use sam_model::pointer::{BalancedCell, BalancedCellValueCodec, ValueCodec};
+use sam_model::{AccessPolicy, AccessStrategy, DryRunSam, PathOsamSam, SamError, SnapshotBlock};
 use efficient_agro::ctx::{dummy_reads, reads, Cell, Ctx, Res, Sam};
 use efficient_agro::data::{oracle, random_queries, Dataset, Query, Truth, ValueMode};
 use efficient_agro::layered::{Kind, Layered, LayeredConfig, Tails};
@@ -39,6 +39,8 @@ struct Config {
     stash_size: StashSize,
     check: bool,
     csv: Option<String>,
+    /// Report the largest encoded cells in a dry-run (copies the whole store).
+    cell_sizes: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -57,12 +59,13 @@ fn parse() -> Result<Config, String> {
         seed: 1,
         values: ValueMode::Hash16,
         crypto: false,
-        block_size: 1024,
-        branching: 64,
+        block_size: 256,
+        branching: 30,
         fanin_cap: None,
         pad: Pad::Analytic,
         stash_size: 40,
         check: false,
+        cell_sizes: false,
         csv: None,
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -100,6 +103,7 @@ fn parse() -> Result<Config, String> {
             }
             "--stash-size" => c.stash_size = val(&mut i)?.parse().map_err(|_| "bad --stash-size")?,
             "--check" => c.check = true,
+            "--cell-sizes" => c.cell_sizes = true,
             "--csv" => c.csv = Some(val(&mut i)?),
             "-h" | "--help" => return Err("see the header of src/bin/sparq_bench.rs".into()),
             a => return Err(format!("unknown argument {a}")),
@@ -356,6 +360,8 @@ fn install_and_run<X: Scheme, const B: usize>(
 ) -> Res<()> {
     let clock = Instant::now();
     let snapshot = dry.snapshot();
+    drop(dry);
+    cell_report(cfg, &scheme.label(), &snapshot.blocks, out)?;
     let allocated = snapshot.next_identifier.saturating_sub(1).max(2);
     let capacity = allocated
         .checked_next_power_of_two()
@@ -390,6 +396,34 @@ fn install_and_run<X: Scheme, const B: usize>(
     run_queries(cfg, scheme, &mut enc, queries, truths, "crypto", out, csv, build_line)
 }
 
+/// Largest encoded cell of each kind (with the 4-byte block envelope). Fails
+/// if any cell would not fit the configured block, so a dry-run already
+/// proves that the encrypted install will work.
+fn cell_report(cfg: &Config, label: &str, blocks: &[SnapshotBlock<Cell>], out: &mut dyn Write) -> Res<()> {
+    let codec = BalancedCellValueCodec::new(ObjCodec::new(cfg.branching));
+    let (mut root, mut node, mut kids) = (0usize, 0usize, 0usize);
+    let mut buf = Vec::new();
+    for block in blocks {
+        buf.clear();
+        codec.encode_value(&block.value, &mut buf)?;
+        let n = buf.len() + 4;
+        match &block.value {
+            BalancedCell::Root { .. } => root = root.max(n),
+            BalancedCell::Node { .. } => node = node.max(n),
+            BalancedCell::Kids { .. } => kids = kids.max(n),
+        }
+    }
+    writeln!(out, "cells scheme={label} block_bytes={} max_root={root} max_node={node} max_kids={kids}", cfg.block_size).ok();
+    let worst = root.max(node).max(kids);
+    if worst > cfg.block_size {
+        return Err(SamError::Backend(format!(
+            "a {label} cell needs {worst} bytes but blocks are {} bytes (lower --branching or raise --block-size)",
+            cfg.block_size
+        )));
+    }
+    Ok(())
+}
+
 fn dispatch<X: Scheme>(
     cfg: &Config,
     scheme: &mut X,
@@ -400,15 +434,39 @@ fn dispatch<X: Scheme>(
     csv: &mut Option<std::fs::File>,
     build_line: &str,
 ) -> Res<()> {
+    {
+        // Server storage of the encrypted tree (Z = 4 blocks per bucket), as
+        // the crypto install sizes it: capacity = next power of two >= the
+        // addresses allocated during the build.
+        let allocated = sam_model::SingleAccessMachine::stats(&dry).operations.allocations.max(2);
+        let capacity = allocated.next_power_of_two();
+        let levels = capacity.ilog2() as u64;
+        writeln!(
+            out,
+            "storage scheme={} allocated={} capacity={} bucket_levels={} block_bytes={} server_bytes={} path_bytes={}",
+            scheme.label(),
+            allocated,
+            capacity,
+            levels,
+            cfg.block_size,
+            capacity * 4 * cfg.block_size as u64,
+            levels * 4 * cfg.block_size as u64
+        )
+        .ok();
+    }
+    if cfg.cell_sizes && !cfg.crypto {
+        cell_report(cfg, &scheme.label(), &dry.snapshot().blocks, out)?;
+    }
     if !cfg.crypto {
         let mut dry = dry;
         return run_queries(cfg, scheme, &mut dry, queries, truths, "dry-run", out, csv, build_line);
     }
     match cfg.block_size {
+        128 => install_and_run::<X, 128>(cfg, scheme, dry, queries, truths, out, csv, build_line),
         256 => install_and_run::<X, 256>(cfg, scheme, dry, queries, truths, out, csv, build_line),
         512 => install_and_run::<X, 512>(cfg, scheme, dry, queries, truths, out, csv, build_line),
         1024 => install_and_run::<X, 1024>(cfg, scheme, dry, queries, truths, out, csv, build_line),
-        _ => Err(SamError::InvalidParameter("block size must be 256, 512 or 1024")),
+        _ => Err(SamError::InvalidParameter("block size must be 128, 256, 512 or 1024")),
     }
 }
 

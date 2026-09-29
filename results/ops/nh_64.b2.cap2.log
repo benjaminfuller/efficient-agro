@@ -1,8 +1,0 @@
-config dataset=nh_64 d=3 N=4096 n=64x64x64 values=hash16 queries=500 seed=1 crypto=false block_size=256 branching=2 fanin_cap=2 pad=Analytic
-build scheme=layered objects=206447 entries=109912 extra=copies:30213/seg:0/wav:0/bst:129 build_s=0.19 max_fanin=casc:2/wav:0 heights=skel:6x6/bst:7/seg:0/wav:12 sigma=3972
-budget scheme=layered kind=group analytic_reads=786
-result scheme=layered kind=group mode=dry-run queries=500 budget=786 real_mean=150.2 real_var=10071.9 real_min=10 real_max=432 win10_max=221.3 win100_max=171.0 padded_per_query=786.0 overflows=0 rounds_mean=24.2 rounds_max=32 writes_per_query=199.4 ops_mean=349.6 ops_var=56657.0 ops_min=20 ops_max=1011 ops_win100_max=398.7 ms_per_query=0.468 max_stash=0 checked=0 mismatches=0
-build scheme=sparq objects=127267 entries=127267 extra=none build_s=0.06 max_fanin=1 heights=6x6x6
-budget scheme=sparq kind=group+semi analytic_reads=3059
-result scheme=sparq kind=group+semi mode=dry-run queries=500 budget=3059 real_mean=97.7 real_var=3192.8 real_min=18 real_max=335 win10_max=141.9 win100_max=111.2 padded_per_query=3059.0 overflows=0 rounds_mean=14.5 rounds_max=15 writes_per_query=97.7 ops_mean=195.5 ops_var=12771.4 ops_min=36 ops_max=670 ops_win100_max=222.4 ms_per_query=0.601 max_stash=0 checked=0 mismatches=0
-sparq_schedule max_level_ratio=1.000 level_overflows=0

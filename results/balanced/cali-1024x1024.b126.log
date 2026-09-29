@@ -1,4 +1,0 @@
-config dataset=cali-1024x1024 d=2 N=17700 n=1015x961 values=hash16 queries=300 seed=1 crypto=false block_size=256 branching=126 fanin_cap=raw pad=Analytic
-build scheme=layered objects=195531 entries=93201 extra=copies:0/seg:0/wav:0/bst:1923 build_s=0.11 max_fanin=casc:366/dims:366/wav:0 heights=skel:10/bst:10/seg:0/wav:14 sigma=15550
-budget scheme=layered kind=group analytic_reads=144
-result scheme=layered kind=group mode=dry-run queries=300 budget=144 real_mean=55.7 real_var=386.9 real_min=16 real_max=87 win10_max=69.8 win100_max=58.2 padded_per_query=144.0 overflows=0 rounds_mean=24.4 rounds_max=33 writes_per_query=226.6 ops_mean=282.3 ops_var=30826.2 ops_min=32 ops_max=776 ops_win100_max=298.1 ms_per_query=0.085 max_stash=0 checked=300 mismatches=0

@@ -1,1 +1,0 @@
-config dataset=gowalla_2d_100k d=2 N=102843 n=6438x4500 values=hash16 queries=500 seed=1 crypto=false block_size=256 branching=30 fanin_cap=30 pad=Analytic

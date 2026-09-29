@@ -54,9 +54,9 @@ fn check_layered(ds: &Dataset, cap: Option<usize>, branching: usize) {
 fn layered_1d_2d_3d_raw_and_capped() {
     for (d, n, dom) in [(1, 300, 2000), (2, 400, 60), (2, 300, 2000), (3, 300, 20), (3, 250, 400)] {
         let ds = synthetic(d, n, dom, d as u64 * 31 + n as u64);
-        check_layered(&ds, None, 64);
+        check_layered(&ds, None, 30);
         check_layered(&ds, None, 3);
-        check_layered(&ds, Some(4), 64);
+        check_layered(&ds, Some(4), 30);
         check_layered(&ds, None, 4); // small fanout exercises deep alias trees
     }
 }
@@ -66,8 +66,8 @@ fn sparq_matches_oracle_within_schedule() {
     for (d, n, dom) in [(1, 300, 2000), (2, 400, 60), (3, 300, 20)] {
         let ds = synthetic(d, n, dom, 99 + d as u64);
         let mut sam: DryRunSam<Cell> = DryRunSam::new(AccessPolicy::MULTI_WRITE);
-        let mut s = Sparq::build(&ds, 64, &mut sam).unwrap();
-        let mut ctx = Ctx::new(64).unwrap();
+        let mut s = Sparq::build(&ds, 30, &mut sam).unwrap();
+        let mut ctx = Ctx::new(30).unwrap();
         let budget = s.analytic_budget();
         for q in random_queries(&ds, 200, 5) {
             let want = oracle(&ds, &q);

@@ -201,12 +201,12 @@ impl ObjCodec {
                 }
             }
         };
-        out.extend_from_slice(&id.to_le_bytes());
+        put_var(out, id);
         Ok(())
     }
 
     fn get_ptr(&self, input: &mut &[u8]) -> Result<Option<Ptr>, SamError> {
-        let id = get_u64(input)?;
+        let id = get_var(input)?;
         if id == 0 {
             return Ok(None);
         }
@@ -231,22 +231,47 @@ fn get_bytes<'a>(input: &mut &'a [u8], n: usize) -> Result<&'a [u8], SamError> {
     *input = b;
     Ok(a)
 }
-fn get_u64(input: &mut &[u8]) -> Result<u64, SamError> {
-    Ok(u64::from_le_bytes(get_bytes(input, 8)?.try_into().unwrap()))
+/// LEB128 varint of an unsigned value.
+fn put_var(out: &mut Vec<u8>, mut x: u64) {
+    loop {
+        let byte = (x & 0x7f) as u8;
+        x >>= 7;
+        if x == 0 {
+            out.push(byte);
+            return;
+        }
+        out.push(byte | 0x80);
+    }
+}
+fn get_var(input: &mut &[u8]) -> Result<u64, SamError> {
+    let mut x = 0u64;
+    for shift in (0..64).step_by(7) {
+        let byte = get_u8(input)?;
+        x |= ((byte & 0x7f) as u64) << shift;
+        if byte & 0x80 == 0 {
+            return Ok(x);
+        }
+    }
+    Err(SamError::InvalidPointerCell("varint too long"))
+}
+/// Zigzag varint of a signed value (small magnitudes take few bytes).
+fn put_int(out: &mut Vec<u8>, x: i64) {
+    put_var(out, ((x << 1) ^ (x >> 63)) as u64);
 }
 fn get_i64(input: &mut &[u8]) -> Result<i64, SamError> {
-    Ok(i64::from_le_bytes(get_bytes(input, 8)?.try_into().unwrap()))
+    let z = get_var(input)?;
+    Ok(((z >> 1) as i64) ^ -((z & 1) as i64))
 }
 fn get_u32(input: &mut &[u8]) -> Result<u32, SamError> {
-    Ok(u32::from_le_bytes(get_bytes(input, 4)?.try_into().unwrap()))
+    u32::try_from(get_i64(input)?).map_err(|_| SamError::InvalidPointerCell("u32 field out of range"))
 }
 fn get_u8(input: &mut &[u8]) -> Result<u8, SamError> {
     Ok(get_bytes(input, 1)?[0])
 }
 fn put_group(g: &Group, out: &mut Vec<u8>) {
-    out.extend_from_slice(&g.cnt.to_le_bytes());
-    out.extend_from_slice(&g.sum.to_le_bytes());
-    out.extend_from_slice(&g.sq.to_le_bytes());
+    put_int(out, g.cnt);
+    put_int(out, g.sum);
+    put_int(out, g.sq);
 }
 fn get_group(input: &mut &[u8]) -> Result<Group, SamError> {
     Ok(Group {
@@ -255,14 +280,24 @@ fn get_group(input: &mut &[u8]) -> Result<Group, SamError> {
         sq: get_i64(input)?,
     })
 }
+/// The MIN/MAX identity (i64::MAX, i64::MIN) is common (sentinels, sampled
+/// copies) and would take 20 bytes as varints, so it is a one-byte tag.
 fn put_semi(s: &Semi, out: &mut Vec<u8>) {
-    out.extend_from_slice(&s.min.to_le_bytes());
-    out.extend_from_slice(&s.max.to_le_bytes());
+    if *s == Semi::IDENTITY {
+        out.push(0);
+    } else {
+        out.push(1);
+        put_int(out, s.min);
+        put_int(out, s.max);
+    }
 }
 fn get_semi(input: &mut &[u8]) -> Result<Semi, SamError> {
-    Ok(Semi {
-        min: get_i64(input)?,
-        max: get_i64(input)?,
+    Ok(match get_u8(input)? {
+        0 => Semi::IDENTITY,
+        _ => Semi {
+            min: get_i64(input)?,
+            max: get_i64(input)?,
+        },
     })
 }
 
@@ -271,7 +306,7 @@ impl ValueCodec<Obj> for ObjCodec {
         match value {
             Obj::Entry(e) => {
                 out.push(1);
-                out.extend_from_slice(&e.rank.to_le_bytes());
+                put_int(out, e.rank as i64);
                 put_group(&e.own, out);
                 put_semi(&e.semi, out);
                 let mut flags = 0u8;
@@ -288,12 +323,12 @@ impl ValueCodec<Obj> for ObjCodec {
                 }
                 out.push(flags);
                 for c in e.casc.iter().flatten() {
-                    out.extend_from_slice(&c.key.to_le_bytes());
+                    put_int(out, c.key as i64);
                     if let Some(k) = &c.kids {
                         self.put_req(&k.l, out)?;
                         self.put_req(&k.r, out)?;
-                        out.extend_from_slice(&k.rank_l.to_le_bytes());
-                        out.extend_from_slice(&k.rank_r.to_le_bytes());
+                        put_int(out, k.rank_l as i64);
+                        put_int(out, k.rank_r as i64);
                         if let Some((a, b)) = &k.pre {
                             put_group(a, out);
                             put_group(b, out);
@@ -305,10 +340,10 @@ impl ValueCodec<Obj> for ObjCodec {
             }
             Obj::Bst(b) => {
                 out.push(2);
-                out.extend_from_slice(&b.key.to_le_bytes());
+                put_int(out, b.key as i64);
                 self.put_ptr(&b.l, out)?;
                 self.put_ptr(&b.r, out)?;
-                out.extend_from_slice(&b.leaf_rank.to_le_bytes());
+                put_int(out, b.leaf_rank as i64);
                 self.put_ptr(&b.entry, out)?;
             }
             Obj::Seg(s) => {
@@ -320,15 +355,15 @@ impl ValueCodec<Obj> for ObjCodec {
             }
             Obj::Wav(w) => {
                 out.push(4);
-                out.extend_from_slice(&w.zeros.to_le_bytes());
-                out.extend_from_slice(&w.ones.to_le_bytes());
+                put_int(out, w.zeros as i64);
+                put_int(out, w.ones as i64);
                 self.put_ptr(&w.l, out)?;
                 self.put_ptr(&w.r, out)?;
             }
             Obj::St(s) => {
                 out.push(5);
-                out.extend_from_slice(&s.lo.to_le_bytes());
-                out.extend_from_slice(&s.hi.to_le_bytes());
+                put_int(out, s.lo as i64);
+                put_int(out, s.hi as i64);
                 put_group(&s.g, out);
                 put_semi(&s.s, out);
                 self.put_ptr(&s.l, out)?;
