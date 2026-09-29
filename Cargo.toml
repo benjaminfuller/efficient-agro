@@ -1,0 +1,19 @@
+[package]
+name = "efficient-agro"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+publish = false
+description = "Oblivious range aggregation (SPARQ baseline + cascaded rank trees) on Path OSAM+"
+
+[lib]
+name = "efficient_agro"
+
+[dependencies]
+# The local rust_osam_plus checkout (which contains the balanced r-ary pointer).
+sam-model = { path = "../crypto-sam/rust_osam_plus/crates/sam-model" }
+osam_plus = { path = "../crypto-sam/rust_osam_plus" }
+rand = "0.8"
+
+[profile.release]
+debug = 1

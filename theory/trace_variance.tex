@@ -1,0 +1,612 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amsthm,amssymb,booktabs}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\dep}{\mathrm{dep}}
+\title{How far can r-ary alias trees stretch an OSAM$^+$ trace?}
+\author{Working note (SPARQ-OSAM), \today}
+\date{}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study the number of reads that the r-ary multi-write pointers of
+\texttt{sam-model} (\texttt{RaryPointer}) add to an OSAM$^+$ trace. Against an
+oblivious adversary, who fixes the access schedule in advance, and with a
+randomized tree layout, we prove three things. The cost of objects with at most
+$b$ aliases is deterministic. Each dereference deepens any alias by at most one
+level. The total trace length exceeds its expectation by
+$O\bigl(\sqrt{s\sum_o r_o^2}\bigr)$ except with probability $e^{-s}$, where the
+ranges $r_o$ are computed from the schedule. For the \emph{binary} pointer we prove a
+deterministic amortized bound, $2\log_2 f+1$ reads per dereference plus
+$O(f)$ once, which holds even against adaptive adversaries. We state the stronger r-ary bound that the
+experiments support ($O(c\sqrt{sK})$ for $K$ dereferences of high-fan-in
+objects) as a theorem conditional on a bounded-influence lemma, and record the
+measurements.
+Section~\ref{sec:halving} gives an r-ary splay rule, path halving, with a
+proven deterministic bound: $2\log_2 f+1$ reads per dereference, amortized.
+It keeps every structural property of the current rule, and the experiments
+support a $2\log_b f+O(1)$ bound, which we state as a conjecture.
+\end{abstract}
+
+\section{Model}
+
+\begin{definition}[Alias tree]
+An object with $f\ge 2$ aliases is a rooted tree whose root holds the value,
+whose leaves are the aliases, and whose internal nodes have at most $b$ ordered
+children ($b\ge 2$ even). A single pointer ($f=1$) is the root itself. The
+\emph{install} layout is the balanced tree built by
+\texttt{RaryPointer::install}, of height $H_0(f)=\lceil\log_b f\rceil$.
+\end{definition}
+
+\begin{definition}[Dereference]
+Let alias $x$ be at depth $D$, on the path $u_0,\dots,u_D=x$ from the root
+$u_0$. A dereference reads the $D+1$ cells $u_D,u_{D-1},\dots,u_0$, so its
+cost is
+\[ R = \dep(x)+1. \]
+Let $A_j$ be the children of $u_j$ other than $u_{j+1}$, for $0\le j<D$. The
+path is dissolved and rebuilt as follows:
+\begin{enumerate}
+\item $P \leftarrow (x', A_{D-1})$, where $x'$ is the fresh leaf of $x$.
+\item For $j=D-2,D-3,\dots,0$: $P\leftarrow \mathrm{Pack}(P\circ A_j)$.
+\item A fresh root receives the items of $P$ as its children.
+\end{enumerate}
+$\mathrm{Pack}(M)$ returns $M$ if $|M|\le b$. Otherwise it splits $M$ into
+$m=\lceil |M|/b\rceil$ consecutive chunks of balanced sizes, and puts every chunk
+of size $\ge 2$ under a fresh internal node.
+\end{definition}
+
+The standalone model in \texttt{src/aliasmodel.rs} implements exactly this
+rule. It reproduces the library's read counts on 150{,}000 dereferences
+($b\in\{2,\dots,30\}$, $f\le 3000$, three access orders;
+\texttt{src/bin/validate\_model.rs}).
+
+\begin{definition}[Randomized layout]
+The initial assignment of aliases to install leaves is a uniform bijection.
+Every $\mathrm{Pack}$, and the final placement under the root, first applies a
+fresh uniform permutation to its items. All other randomness is independent
+across dereferences.
+\end{definition}
+
+\begin{definition}[Oblivious adversary, trace length]
+The adversary fixes a schedule $\sigma=((o_1,a_1),\dots,(o_K,a_K))$ of
+(object, alias) dereferences before any randomness is drawn. It may depend on
+public parameters ($b$ and every fan-in $f_o$) but not on the layout. The trace
+length is $T(\sigma)=\sum_{t} R_t$.
+\end{definition}
+
+\begin{remark}
+In the SAM model, the read count is a deterministic function of the schedule
+and the layout. Path OSAM$^+$'s own randomness (leaf positions, eviction)
+never changes it. With the library's deterministic layout, $T(\sigma)$ is
+therefore a fixed number for each $\sigma$. "Exceeding the expectation" is
+only meaningful once the layout is randomized, which is why the randomized
+layout is part of the model.
+\end{remark}
+
+\section{Structural lemmas (unconditional)}
+
+\begin{lemma}[At most $b$ items pending]\label{lem:pending}
+During a rebuild, $|P|\le b$ after step 1 and after every $\mathrm{Pack}$. In
+particular, the root never needs extra packing.
+\end{lemma}
+\begin{proof}
+After step 1, $|P|\le 1+(b-1)=b$. If $|P|\le b$, then $|P\circ A_j|\le 2b-1$.
+$\mathrm{Pack}$ then either returns at most $b$ items unchanged, or returns
+$\lceil (2b-1)/b\rceil = 2\le b$ chunks.
+\end{proof}
+
+\begin{lemma}[Unit depth growth]\label{lem:growth}
+Consider one dereference of alias $x$ in an object. Every other alias $y$ of
+that object satisfies $\dep'(y)\le \dep(y)+1$, and $x$ itself satisfies
+$\dep'(x)\le\dep(x)$. Aliases of other objects are unaffected. This holds for
+every layout, deterministic or randomized.
+\end{lemma}
+\begin{proof}
+Every leaf other than $x$ lies in exactly one side subtree $A_j$, whose
+internal shape is untouched. Only its root moves. An item's new depth is $1$
+(child of the new root) plus the number of $\mathrm{Pack}$s that wrapped it
+under a fresh node. Each $\mathrm{Pack}$ wraps an item at most once.
+
+For $j\le D-2$, $A_j$ enters $P$ at level $j$, so it takes part in the
+$\mathrm{Pack}$s at levels $j,j-1,\dots,0$. That is $j+1$ of them, so its
+root's new depth is at most $j+2$. The old depth was $j+1$.
+
+$x'$ and $A_{D-1}$ take part in all $D-1$ $\mathrm{Pack}$s, so their new depth
+is at most $D$. The old depth was $D$.
+\end{proof}
+
+\begin{corollary}[Flat regime]\label{cor:flat}
+If $f\le b$, every dereference costs exactly $2$ reads, forever (exactly $1$
+read if $f=1$).
+\end{corollary}
+\begin{proof}
+The install tree is flat, so $D=1$. Then $P=(x',A_0)$ holds all $f\le b$
+leaves, no $\mathrm{Pack}$ occurs, and the new root again has all $f$ leaves as
+children. Induct on the number of dereferences.
+\end{proof}
+
+\begin{corollary}[Schedule-computable range]\label{cor:range}
+Fix $\sigma$ and an object $o$ with $f_o>b$. Let $t$ be a dereference of alias
+$a$ of $o$. Let $g_t$ be the number of dereferences of $o$ since $a$'s previous
+dereference $t'$, or since the start if there is none. Then
+\[
+2\le R_t\le U_t(\sigma):=\begin{cases}U_{t'}(\sigma)+g_t & \text{if } t' \text{ exists},\\
+H_0(f_o)+1+g_t & \text{otherwise.}\end{cases}
+\]
+\end{corollary}
+\begin{proof}
+Apply Lemma~\ref{lem:growth} once per intervening dereference of $o$, starting
+from the install height. The lower bound is $\dep\ge 1$ for $f\ge 2$.
+\end{proof}
+
+\section{Concentration}\label{sec:concentration}
+
+\begin{theorem}[Concentration against oblivious adversaries]\label{thm:main}
+Assume a randomized layout, and fix any schedule $\sigma$. Let $O_{>}$ be the
+set of objects with $f_o>b$. Let $n_o$ be the number of dereferences of $o$ in
+$\sigma$, and $r_o=\sum_{t\,:\,o_t=o}(U_t(\sigma)-2)$. Then for every
+$\lambda>0$,
+\[
+\Pr\bigl[T(\sigma)\ \ge\ \E[T(\sigma)]+\lambda\bigr]\ \le\
+\exp\!\Bigl(-\frac{2\lambda^2}{\sum_{o\in O_>} r_o^2}\Bigr).
+\]
+Equivalently, with probability at least $1-e^{-s}$,
+$T(\sigma)\le \E[T(\sigma)]+\sqrt{\tfrac{s}{2}\sum_{o\in O_>} r_o^2}$.
+\end{theorem}
+\begin{proof}
+Write $T(\sigma)=C(\sigma)+\sum_{o\in O_>}T_o$. The term $C(\sigma)$ collects
+the objects with $f_o\le b$, and is deterministic by
+Corollary~\ref{cor:flat}. $T_o$ depends only on $\sigma|_o$, on the initial
+bijection of $o$, and on the permutations drawn during $o$'s own rebuilds. The
+schedule is fixed in advance, and fresh randomness is drawn per rebuild, so
+these random inputs are disjoint across objects. The $T_o$ are therefore
+mutually independent. (Drawing everything from one shared stream gives the
+same joint law, because each draw uses fresh bits.) By
+Corollary~\ref{cor:range}, $T_o\in[2n_o,\,2n_o+r_o]$. Hoeffding's inequality
+for independent bounded summands finishes the proof.
+\end{proof}
+
+\paragraph{Reading the bound.}
+Suppose each object with $f>b$ is dereferenced at most once in the run
+($r_o=H_0-1$) over $K$ such dereferences. The excess is then at most
+$(H_0-1)\sqrt{sK/2}$, i.e.\ it grows like $\sqrt K$. With $b=30$, $f=952$
+($H_0=3$), $K=10^4$ and $s=40$ (failure probability $2^{-57}$), the excess is at
+most 894 reads, on an expected total of about $4.5\cdot 10^4$ (2\%). The bound
+degrades for \emph{hot} objects: an object dereferenced $n$ times with long gaps
+has $r_o=\Theta(n^2)$ in the worst case. That is where
+Theorem~\ref{thm:cond} is needed.
+
+\begin{definition}[Influence]
+Let $\rho_0$ be the initial layout and $\rho_t$ the randomness of the $t$-th
+dereference. The influence of step $t$ is
+\[
+c_t=\sup_{\rho_{<t}}\ \sup_{\rho_t,\rho_t'}\
+\Bigl|\E[T\mid \rho_{<t},\rho_t]-\E[T\mid \rho_{<t},\rho_t']\Bigr|.
+\]
+\end{definition}
+
+\begin{theorem}[Conditional $\sqrt K$ bound]\label{thm:cond}
+If $c_t\le c$ for every $t$, then for every schedule $\sigma$ with $K$
+dereferences of objects in $O_>$,
+\[
+\Pr\bigl[T(\sigma)\ge \E[T(\sigma)]+\lambda\bigr]\le \exp\!\Bigl(-\frac{\lambda^2}{2Kc^2}\Bigr).
+\]
+\end{theorem}
+\begin{proof}
+$M_t=\E[T\mid\rho_0,\dots,\rho_t]$ is a Doob martingale in which only the
+$K$ steps that touch $O_>$ carry randomness. Its increments are bounded by
+$c_t\le c$. Apply Azuma--Hoeffding.
+\end{proof}
+
+\begin{conjecture}\label{conj}
+For the randomized layout, $c=O(b\,H_0(f))$, independent of the schedule
+and of $K$. Also, for every oblivious schedule,
+$\E[R_t]\le H_0(f)+1+\gamma_b$ for a constant $\gamma_b$.
+\end{conjecture}
+
+The second half of the conjecture is what padding needs. The public budget has
+to cover $\max_\sigma \E[T(\sigma)]$ plus the slack.
+
+\section{Evidence}
+
+\paragraph{Concentration} (\texttt{src/bin/concentration.rs}). This uses 100
+independent layouts per fixed schedule and a window of $k$ dereferences of one
+object after a warm-up of $2f$ dereferences. Across all $(b,f)\in\{(4,300),(16,952),(30,952),(30,3000)\}$ and all six schedules (cyclic,
+stride, uniform, Zipf, bursts, hot-set-then-scan), we observe:
+\begin{itemize}
+\item $\mathrm{sd}(T_k)/\sqrt k\in[0.59,1.32]$ for every schedule except the phased hot-set-then-scan one ($0.81$--$4.13$).
+\item The maximum over 100 layouts is at most $\E+3.1\,\mathrm{sd}$.
+\end{itemize}
+This is the $\sqrt K$ scaling of Theorem~\ref{thm:cond} with $c\approx 1$, even
+though a single object is dereferenced $10^4$ times, far outside the regime
+where Theorem~\ref{thm:main} is sharp.
+
+\paragraph{Influence} (\texttt{src/bin/influence2.rs}). We branch at a random
+step, then use common random numbers for 400 futures. The signed influence
+estimates for $b=30$, $f=952$ at look-ahead $L=10,100,1000,4000$ are
+below one read in absolute value at $L\le 100$. At $L=1000$ and $4000$ they
+are at most $9$ reads for the uniform and cyclic schedules, all within
+$2.3$ standard errors of $0$. They are larger but still noisy ($\le 22$
+reads) for hot-set-then-scan. Under this coupling the two copies do not
+re-synchronize, so the per-path differences grow like $\sqrt L$ while their
+means stay small. A proof of Conjecture~\ref{conj} needs a coupling that
+merges two layouts once they have pushed the same set of items through a
+$\mathrm{Pack}$.
+
+\paragraph{Expectation} Mean reads per dereference with the randomized layout
+(deterministic library in parentheses):
+
+\medskip
+\begin{tabular}{lccccc}
+\toprule
+$(b,f)$ & $H_0+1$ & uniform & cyclic & Zipf & bursts\\
+\midrule
+$(4,300)$ & 6 & 8.11 (7.70) & 8.33 (6.43) & 7.04 (6.80) & 2.87 (2.20)\\
+$(16,952)$ & 4 & 5.51 (5.07) & 5.56 (4.79) & 4.92 (4.66) & 2.44 (2.04)\\
+$(30,952)$ & 4 & 4.79 (4.48) & 4.82 (4.05) & 4.40 (4.18) & 2.34 (2.02)\\
+$(30,3000)$ & 4 & 5.55 (5.07) & 5.58 (3.59) & 4.95 (4.60) & 2.45 (2.03)\\
+\bottomrule
+\end{tabular}
+\medskip
+
+\noindent Randomizing the layout costs 5--55\% in expectation, but it turns
+worst-case-over-schedules padding into expectation-plus-$O(\sqrt K)$ padding.
+
+\paragraph{The deterministic potential fails} (\texttt{src/bin/potential.rs}).
+With the library's deterministic layout, the rank potential
+$\Phi=c\sum_v\log_2 s(v)$ does not certify an amortized bound of the form
+$R_i+\Phi_i-\Phi_{i-1}\le O(\log f)$ for any tested scale $c$. Single rebuilds
+can raise $\Phi$ by 12--25 bits, and an adversary that always picks the deepest
+alias is not the worst case; cyclic scans are. This is one more reason to use
+the randomized layout together with an oblivious adversary.
+
+
+\section{The binary pointer: a deterministic bound}
+
+The binary multi-write pointer (\texttt{MultiWritePointer}) admits a much
+simpler and stronger statement. Its bound is deterministic, so it needs no
+randomized layout and holds even against \emph{adaptive} adversaries.
+
+\begin{definition}[Binary alias tree and rebuild]
+The tree is full binary: every cell stores its parent and its sibling, and
+leaves are aliases. The install layout splits $f$ aliases into
+$\lfloor f/2\rfloor$ and $\lceil f/2\rceil$ recursively. Dereferencing alias
+$x$ maintains a state $(X,Y,P)$ of two new subtrees and one old node with
+$\mathrm{leaves}(X)\cup\mathrm{leaves}(Y)=\mathrm{leaves}(P)$. It starts from
+$(\{x'\},\ \mathrm{sib}(x),\ \mathrm{par}(x))$ after reading $x$. Each
+iteration reads $P$:
+\begin{itemize}
+\item If $P$ is the root, a new root receives children $X$ and $Y$. Stop.
+\item Otherwise read $G=\mathrm{par}(P)$, and let $S_P=\mathrm{sib}(P)$.
+  \begin{itemize}
+  \item If $G$ is the root, form $N=(Y,S_P)$; a new root receives $X$ and $N$. Stop.
+  \item Otherwise let $S_G=\mathrm{sib}(G)$, form $L=(X,Y)$ and $R=(S_P,S_G)$, and continue with $(L,R,\mathrm{par}(G))$.
+  \end{itemize}
+\end{itemize}
+Every path cell is read once, so the cost is again $\dep(x)+1$. This is
+path halving: two levels are consumed per iteration and one is created.
+\end{definition}
+
+\begin{lemma}[Access lemma]\label{lem:access}
+Let $\Phi=\sum_{v\text{ internal}}\log_2 s(v)$, where $s(v)$ is the number of
+aliases below $v$. One dereference in an object with $f$ aliases satisfies
+\[ R\ \le\ 2\log_2 f+1+\Phi-\Phi'. \]
+\end{lemma}
+\begin{proof}
+Let $\mu=\log_2 s(P)$ for the current state, so $\mu\ge 1$ after the first
+read.
+
+In a middle iteration, write $a=s(P)$, $b=|S_P|$ and $c=|S_G|$. The node $L$
+has exactly $P$'s leaves, and $R$ replaces $G$, so
+$\Delta\Phi=\log_2(b+c)-\log_2(a+b)$. By AM--GM,
+$a(b+c)\le\bigl((a+b+c)/2\bigr)^2$, so
+\[
+2+\Delta\Phi\ \le\ 2\log_2(a+b+c)-\log_2 a-\log_2(a+b)\ \le\ 2(\mu'-\mu),
+\]
+where $\mu'=\log_2(a+b+c)=\log_2 s(\mathrm{par}(G))$.
+
+The root case costs one read, with $\Delta\Phi=0$ and $\mu=\log_2 f$. The
+$G$-root case costs two reads, with
+$\Delta\Phi=\log_2(|Y|+|S_P|)-\mu\le\log_2 f-\mu$.
+
+Telescoping from $\mu_0\ge 1$, the total is at most $2\log_2 f$ in the first
+case and $1+\mu+\log_2 f\le 2\log_2 f+1$ in the second.
+\end{proof}
+
+\begin{theorem}[Deterministic trace bound, binary pointers]\label{thm:binary}
+For every sequence of $k$ dereferences of one object, chosen adaptively or
+not, starting from its install layout,
+\[
+T\ \le\ k\,(2\log_2 f+1)+\Delta(f),\qquad \Delta(f)=B(f)-(f-1)\le 2f,
+\]
+where $B(1)=0$ and $B(f)=\log_2 f+B(\lfloor f/2\rfloor)+B(\lceil f/2\rceil)$
+is the install potential. Over many objects,
+$T(\sigma)\le\sum_t(2\log_2 f_{o_t}+1)+\sum_{o\text{ touched}}\Delta(f_o)$. A
+window that starts in an arbitrary state instead of the install layout pays at
+most $(f-1)(\log_2 f-1)$ instead of $\Delta(f)$.
+\end{theorem}
+\begin{proof}
+Sum Lemma~\ref{lem:access}; the potentials telescope. Every internal node has
+$s\ge 2$ and there are $f-1$ of them, so $\Phi\ge f-1$. Also
+$\Phi\le(f-1)\log_2 f$. Induction gives $B(f)\le 3f-\log_2 f-3$, since
+$2\log_2 f-\log_2(\lfloor f/2\rfloor\lceil f/2\rceil)\le 2+\log_2\tfrac43<3$.
+Hence $\Delta(f)\le 2f$. Numerically, $\Delta(f)\le 1.06f$ for all
+$f\le 2\cdot10^5$.
+\end{proof}
+
+\paragraph{Check} (\texttt{src/bin/potential\_binary.rs}). Lemma~\ref{lem:access}
+held on all 126{,}000 dereferences of the library's
+\texttt{MultiWritePointer}: $f\in\{2,\dots,3000\}$, with random, cyclic,
+reverse, Zipf, bursty, and always-deepest (adaptive) schedules. Every step had
+at least one read of slack.
+
+\paragraph{Why the r-ary rule resists this argument.} The proof uses two
+properties of path halving: the new left node inherits its old parent's rank
+exactly, and only one new node absorbs the side subtrees of two levels. The
+r-ary rebuild carries up to $b$ pending items per level and re-chunks them,
+so it does neither. We measured single rebuilds raising $\Phi$ by 12--25 bits.
+
+\paragraph{Price.} Binary trees cost $\approx\log_2 f$ reads per dereference,
+against $\approx\log_b f$. For $f=952$ the binary pointer's mean is 12.9
+(uniform), 6.7 (cyclic) and 2.3 (bursts) reads, and Theorem~\ref{thm:binary}
+certifies 20.8 per dereference. The r-ary pointer (b = 30) averages 4.5 on the
+uniform schedule, and a shape-preserving r-ary rebuild costs exactly 4.
+
+\section{What the server sees}
+\label{sec:rw}
+
+Standard OSAM$^+$ (the setting of the Concrete OSAM paper) performs every
+write by reading a dummy path, so it leaks the number of reads \emph{plus}
+writes. There the binary pointer costs exactly $C=3R-1$ per dereference. The
+r-ary backend used here (\texttt{MULTI\_WRITE\_RARY}) is different. Writes are
+local: they go to the stash and are drained by the $P$ eviction paths that each
+read downloads, with $P$ much smaller than $b$ (we use $P=1$). The server sees
+only reads, each of $1+P$ paths, plus public flushes during bulk builds. So
+$R$ is the leaked quantity, and a large $b$ saves both round trips and
+bandwidth. All the rules in this note write $O(b)$ cells per read, which is
+the property the backend relies on to keep the stash bounded. The alias model
+now also counts writes. It matches the library write for write on the same
+150{,}000 dereferences (\texttt{validate\_model}).
+
+\section{An r-ary splay rule with a proven bound: path halving}
+\label{sec:halving}
+
+The current rule dissolves the whole path and re-chunks it, and no rank
+potential certifies it (Section~5). We now keep the splay behavior but
+restructure like the binary pointer: two path nodes per step, halving the
+path. The difference from the binary rule is that the carried set may hold up
+to $b$ items.
+
+\paragraph{The rule.} Let $s(v)$ be the number of aliases below $v$. Write
+$\mathrm{sib}(v)$ for the other children of $v$'s parent. A dereference of
+alias $a$ reads $a$'s cell and replaces $a$ by a fresh leaf. It then keeps a
+\emph{carried set} $K$: the new child set of the current path node $p$,
+initially the children of $a$'s parent with $a$ replaced. Repeat:
+\begin{enumerate}
+\item Read $p$. If $p$ is the root, write a new root with children $K$. Stop.
+\item Let $S_1=\mathrm{sib}(p)$, and read the parent $p'$ of $p$. If $p'$ is
+  the root, write a new root with children $K\cup S_1$ if $|K|+|S_1|\le b$,
+  and otherwise with children $\{\ell\}\cup S_1$, where $\ell$ is a new node
+  over $K$. Stop.
+\item Let $S_2=\mathrm{sib}(p')$ and $p''$ the parent of $p'$. The new child
+  set $K'$ of $p''$ is:
+  \begin{itemize}
+  \item[(A0)] $K\cup S_1\cup S_2$, if it has at most $b$ items;
+  \item[(A)] otherwise $\{\ell\}\cup S_1\cup S_2$, with $\ell=\mathrm{node}(K)$,
+    if that has at most $b$ items;
+  \item[(B)] otherwise $\{\ell,r\}\cup(S_2\setminus D)$. Here $D$ holds the
+    $\max(0,|S_2|+2-b)\le 1$ smallest members of $S_2$, and
+    $r=\mathrm{node}(S_1\cup D)$, or $r$ is that single member when
+    $|S_1\cup D|=1$.
+  \end{itemize}
+  Discard $p$ and $p'$, set $p\leftarrow p''$ and $K\leftarrow K'$, and
+  repeat.
+\end{enumerate}
+
+\begin{theorem}[r-ary path halving]\label{thm:halving}
+Let $\Phi=\sum_{v\ \mathrm{internal}}\log_2 s(v)$ and $f\ge2$. Every
+dereference satisfies:
+\begin{enumerate}
+\item (single read, bounded groups) every cell on the path is read once, the
+  carried set and every new group have at most $b$ members, and every node
+  keeps at least 2 children;
+\item (unit depth growth) every other alias deepens by at most one level, and
+  the accessed alias never deepens;
+\item (flat regime) if $f\le b$, it performs exactly 2 reads and the tree stays
+  flat;
+\item (access lemma) it performs $R\le 2\log_2 f+1+\Phi-\Phi'$ reads.
+\end{enumerate}
+Consequently, for every $k$ and every sequence of $k$ dereferences of an
+object installed as $T_0$, even one chosen adaptively,
+\[
+\Pr\Big[\sum_t R_t > k(2\log_2 f+1)+\Phi(T_0)-\tfrac{f-1}{b-1}\Big]=0 .
+\]
+\end{theorem}
+\begin{proof}
+(1) holds by construction. $|K|\le b$ holds initially, and (A0), (A) and (B)
+each produce at most $b$ items. In (B), $|K'|=2+|S_2|-|D|\le b$ and
+$|S_1\cup D|\le (b-1)+1$. Every new node gets at least 2 children.
+
+(2) Let $d$ be the depth of $p$. A step moves $K$'s members from depth $d+1$
+to depth $d$ or less. It moves $S_1$ from depth $d$ to $d$ (inside $r$) or to
+$d-1$. It moves $D$ from $d-1$ to $d$, and it leaves $S_2\setminus D$ in
+place. Everything a step places in $K'$ only moves up afterwards, and the
+final steps do not deepen anything. Every off-path subtree occurs in exactly
+one $S_1$ or $S_2$, so it deepens at most once.
+
+(3) If $f\le b$, the root's children are all aliases, so step 1 applies at
+once: 2 reads, and the tree is again flat.
+
+(4) Let $x=s(p)$ and $\mu=\log_2 x$. Initially $\mu\ge1$. $K$ covers the same
+aliases as the old $p$, and $\Delta\Phi$ counts the removed and the created
+nodes. Step 1 performs 1 read, and $\Delta\Phi=0$. Step 2 performs 2 reads,
+and $\Delta\Phi\le0$. In step 3, let $y=s(S_1)$, let $\delta=s(D)$, and let
+$\mu'=\log_2 s(p'')$, where $s(p'')\ge x+y+\delta$. The step performs 2 reads.
+\begin{itemize}
+\item (A0): $\Delta\Phi=-\log_2x-\log_2(x+y)\le -2$, so $2+\Delta\Phi\le0$.
+\item (A): $\Delta\Phi=-\log_2(x+y)$. Every node has at least 2 children, so
+  $x\ge2$, $y\ge1$ and $s(p'')\ge4$. Hence $2+\Delta\Phi\le2(\mu'-\mu)$ (check
+  $x+y=3$ separately).
+\item (B): $\Delta\Phi=\log_2(y+\delta)-\log_2(x+y)$. By AM--GM,
+  $x(y+\delta)\le((x+y+\delta)/2)^2$, so
+  \[
+  2+\Delta\Phi\le 2\log_2(x+y+\delta)-\log_2x-\log_2(x+y)\le2(\mu'-\mu).
+  \]
+  If $r$ is a single member, $\Delta\Phi=-\log_2(x+y)$, as in (A).
+\end{itemize}
+Summing, the steps telescope from $\mu\ge1$ to at most $\log_2 f$. With the
+leaf read and the final step, $R+\Delta\Phi\le 1+2(\log_2f-1)+2=2\log_2 f+1$.
+For the corollary, sum the lemma, and use that at the end every internal node
+has size at least 2 and there are at least $(f-1)/(b-1)$ of them.
+\end{proof}
+
+The bound is deterministic and needs no randomness or assumption on the
+adversary. It is the r-ary counterpart of the binary theorem
+(Theorem~\ref{thm:binary}), and it keeps every structural property of the
+current rule. For the installed tree, $\Phi(T_0)=O(f\log_2 b/b)$ is small.
+
+We checked all four claims on 180{,}000 dereferences (\texttt{halving}): $b\in\{4,8,30\}$,
+$f\in\{16,100,952,3000\}$, and uniform, cyclic, Zipf, bursty and
+deepest-alias schedules. The access lemma always held, with slack at least
+6 reads. The largest depth growth of another alias was 1, and $f\le b$ always
+cost 2.
+
+\paragraph{The proven bound is in base 2; the data say base $b$.} The telescoping
+above gains only a factor 2 in size per two reads, as in the binary pointer.
+With the potential $2\sum\log_b s(v)$ instead, the largest amortized cost of a
+single dereference, $R+2\Delta\Phi_b$, was:
+
+\begin{center}\small
+\begin{tabular}{rr|c|cc|c}
+$b$&$f$&$2\log_b f$&fixed schedules (6 kinds)&greedy adaptive adversary&$2\log_2f+1$\\\hline
+4&952&9.9&8.6&8.7&20.8\\
+4&3000&11.6&10.4&11.1&24.1\\
+8&952&6.6&7.0&6.7&20.8\\
+30&952&4.0&5.0&5.0&20.8\\
+30&3000&4.7&5.0&5.0&24.1
+\end{tabular}
+\end{center}
+The greedy adversary (\texttt{halving\_adv}) tries the deepest alias and 40
+random ones at every step, on a clone of the tree, and dereferences the one
+with the largest amortized cost.
+
+\begin{conjecture}\label{conj:halving}
+For r-ary path halving, $R\le 2\log_b f+c+2(\Phi_b-\Phi_b')$ for an absolute
+constant $c$ (the data suggest $c\le1$), where $\Phi_b=\sum_v\log_b s(v)$.
+\end{conjecture}
+
+\emph{Where a proof must work.} In a type-(B) step, write $u=y+\delta$ for
+the size of $r$ and $z$ for the total size of $S_2$. The base-$b$ step
+inequality is $s(p'')(x+y)/(x\,u)\ge b$. It fails in a binary-like
+configuration: $p$ has one sibling subtree of about its own size ($y\approx
+x$), while $p'$ has many small siblings ($z$ small, but $|S_1|+|S_2|\ge b$).
+Then the step doubles the size for two reads. Such steps cost
+$2-4\log_b2$ each, beyond the base-$b$ bound. A proof needs a potential that
+also charges shapes where a node has one child much larger than the rest.
+Neither the fixed schedules nor the greedy adversary produced a run of such
+steps.
+
+\paragraph{Against the current rule.} Reads per dereference (mean / max,
+3{,}000 steps):
+\begin{center}\small
+\begin{tabular}{rr|cc|cc|cc|cc}
+&&\multicolumn{2}{c|}{uniform}&\multicolumn{2}{c|}{cyclic}&\multicolumn{2}{c|}{deepest}&\multicolumn{2}{c}{bursty}\\
+$b$&$f$&halving&current&halving&current&halving&current&halving&current\\\hline
+4&952&6.5/9&9.0/16&4.3/13&5.4/45&7.0/8&9.8/11&3.3/11&3.1/25\\
+8&3000&5.3/7&7.2/12&3.5/6&3.2/35&6.0/7&7.7/9&3.2/7&2.8/17\\
+30&952&3.1/5&4.4/8&3.1/5&2.7/10&4.0/5&4.7/6&3.0/5&2.3/11\\
+30&3000&4.0/5&5.0/9&3.3/5&2.5/7&5.0/5&5.6/7&3.1/5&2.4/10
+\end{tabular}
+\end{center}
+Halving has a lower mean on uniform and deepest-alias schedules, and a much
+lower maximum everywhere: its worst single dereference stays near
+$\log_b f+2$. It is slower on bursts, because a re-accessed alias only moves
+up half the path, so it costs 3 reads rather than 2. A final step that
+collapses into the root whenever the carried set fits would recover part of
+that.
+
+\section{A balanced r-ary pointer with downward pointers}
+\label{sec:balanced}
+
+For static structures, where queries only dereference, and for any setting
+that needs a worst-case bound, we give up splaying and keep each alias tree
+\emph{complete}. The shape is a function of the alias count $f$ alone: all
+leaves are at depth $H=\lceil\log_b f\rceil$ ($H=0$ for $f=1$, where the alias
+is the root), and leaf $j$ follows the base-$b$ digits of $j$
+(\texttt{src/bptr.rs}).
+
+\paragraph{Cells.} A root holds the value, $f$, $H$ and the address of its
+child list. Every alias and every internal node has a cell holding its
+parent's address and the parent's whole child group, as pairs
+$(\text{node},\text{down})$. An internal node $v$ also has a child-list cell
+$\mathrm{Kids}(v)$ that holds the same group. This is the downward pointer.
+Because a member's cell is a function of its parent and its group, a
+dereference can rewrite every off-path member without reading it. Child lists
+are only rewritten during dereferences, never read, so their addresses stay
+put until a copy or delete reads them.
+
+\begin{theorem}[Balanced pointer]\label{thm:balanced}
+Starting from a bulk install or from $\mathrm{New}$, and after any sequence
+of dereferences, copies and deletes, even one chosen adaptively, the alias
+tree is the complete tree for the current $f$, and:
+\begin{enumerate}
+\item a dereference performs exactly $H+1$ reads and at most $(b+1)H+1$
+  writes (at most $b+1$ per read). It performs fewer reads only when the walk
+  meets a root that is open in the client cache;
+\item a copy and a delete each perform exactly $2H$ reads, or 1 when $H=0$;
+\item every address is read at most once, and an alias's cell is read only by
+  its own holder.
+\end{enumerate}
+Hence, for every $k$, $\Pr\big[\sum_t R_t>\sum_t(\lceil\log_b
+f_t\rceil+1)\big]=0$ over any $k$ dereferences.
+\end{theorem}
+\begin{proof}[Proof sketch]
+\emph{Dereference.} The walk reads the alias and each ancestor once. Each read
+cell gets a fresh address. For each path node $v$, the group of $v$'s
+children is known, because it is stored in the cell of the child we came
+from. So all of $v$'s children are rewritten with $v$'s new address, and
+$\mathrm{Kids}(v)$ is rewritten in place. No node moves, so the shape is
+unchanged.
+
+\emph{Copy.} After the upward walk, the new alias goes to position $f$. The
+walk goes down from the root along the digits of $f$. It reads
+$\mathrm{Kids}(u)$ for each frontier node $u$ that is not on the alias's path
+(at most $H-1$ of them), gives that child list a fresh address, and rewrites
+$u$'s group. Missing frontier nodes are created. If $f=b^H$, a new level is
+inserted below the root.
+
+\emph{Delete.} The upward walk, then the downward walk to position $f-1$
+(again at most $H-1$ child-list reads). The last alias is moved into the
+hole: its cell is rewritten in place, so its holder's address stays valid.
+Emptied frontier nodes are removed. If the root is left with a single
+internal child, the tree is contracted, which needs at most one more
+child-list read, and only when the frontier walk needed none. When one alias
+remains, its cell becomes the root.
+
+Copies and deletes are padded with dummy reads to exactly $2H$. Every read in
+these walks is of a path node or a child list, never of another holder's
+alias.
+\end{proof}
+
+The implementation passes randomized tests of every claim, with exact read
+counts: dereferences for $b=2,\dots,30$ and $f\le 952$; 3{,}000 random
+copies, deletes, puts and gets per fanout; copies that grow the tree while its
+root is cached; and mixed workloads through sam-model's client cache. With
+$b=30$ and 256-byte blocks (a node cell is $6+8b$ bytes), SPARQ-OSAM's
+per-query budgets now hold with raw fan-in. On seven datasets, with 500
+queries per tail, all answers were correct and no query exceeded its
+budget.
+
+Compared with the splay rules of Sections~5--7, the balanced pointer gives up
+adaptivity and zero-read copies. In return it has exact worst-case costs and
+no trace variance from the pointer state.
+
+\end{document}

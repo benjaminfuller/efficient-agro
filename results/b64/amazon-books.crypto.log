@@ -1,0 +1,12 @@
+config dataset=amazon-books d=1 N=7836 n=7836 values=hash16 queries=20 seed=1 crypto=true block_size=1024 branching=64 fanin_cap=raw pad=Analytic
+build scheme=layered objects=54859 entries=7837 extra=copies:0/seg:7841/wav:0/bst:15673 build_s=0.02 max_fanin=casc:1/dims:/wav:0 heights=skel:/bst:13/seg:13/wav:13 sigma=7397
+budget scheme=layered kind=group analytic_reads=30
+budget scheme=layered kind=semi analytic_reads=78
+install scheme=layered capacity=65536 block_bytes=1024 bucket_levels=16 path_bytes=65536 install_s=649.18 install_max_stash=3824
+result scheme=layered kind=group mode=crypto queries=20 budget=30 real_mean=27.4 real_var=3.6 real_min=23 real_max=29 win10_max=27.9 win100_max=NaN padded_per_query=30.0 overflows=0 rounds_mean=15.0 rounds_max=15 writes_per_query=27.4 ops_mean=54.9 ops_var=14.6 ops_min=46 ops_max=58 ops_win100_max=NaN ms_per_query=924.914 max_stash=3619 checked=20 mismatches=0
+result scheme=layered kind=semi mode=crypto queries=20 budget=78 real_mean=70.0 real_var=69.5 real_min=51 real_max=77 win10_max=71.9 win100_max=NaN padded_per_query=78.0 overflows=0 rounds_mean=36.3 rounds_max=39 writes_per_query=112.3 ops_mean=182.3 ops_var=548.1 ops_min=130 ops_max=202 ops_win100_max=NaN ms_per_query=2432.429 max_stash=3612 checked=20 mismatches=0
+build scheme=sparq objects=15671 entries=15671 extra=none build_s=0.00 max_fanin=1 heights=13
+budget scheme=sparq kind=group+semi analytic_reads=51
+install scheme=sparq capacity=16384 block_bytes=1024 bucket_levels=14 path_bytes=57344 install_s=52.90 install_max_stash=1172
+result scheme=sparq kind=group+semi mode=crypto queries=20 budget=51 real_mean=44.8 real_var=41.2 real_min=25 real_max=51 win10_max=45.6 win100_max=NaN padded_per_query=51.0 overflows=0 rounds_mean=13.8 rounds_max=14 writes_per_query=44.8 ops_mean=89.6 ops_var=164.6 ops_min=50 ops_max=102 ops_win100_max=NaN ms_per_query=396.934 max_stash=1224 checked=20 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

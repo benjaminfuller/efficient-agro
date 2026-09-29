@@ -1,0 +1,12 @@
+config dataset=spitz-1024x1024 d=2 N=1480 n=662x524 values=hash16 queries=500 seed=1 crypto=false block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=468261 entries=11481 extra=copies:0/seg:11430/wav:230394/bst:1049 build_s=0.62 max_fanin=casc:89/wav:17 heights=skel:10/bst:10/seg:10/wav:11 sigma=1461
+budget scheme=layered kind=group analytic_reads=144
+budget scheme=layered kind=semi analytic_reads=1056
+budget scheme=layered kind=quantile analytic_reads=1232
+result scheme=layered kind=group mode=dry-run queries=500 budget=144 real_mean=49.7 real_var=475.0 real_min=11 real_max=87 win10_max=70.1 win100_max=53.6 padded_per_query=144.0 overflows=0 rounds_mean=22.1 rounds_max=32 writes_per_query=129.0 ops_mean=178.7 ops_var=10238.9 ops_min=22 ops_max=441 ops_win100_max=202.0 ms_per_query=0.088 max_stash=0 checked=500 mismatches=0
+result scheme=layered kind=semi mode=dry-run queries=500 budget=1056 real_mean=97.0 real_var=4293.8 real_min=11 real_max=290 win10_max=162.5 win100_max=105.5 padded_per_query=1056.0 overflows=0 rounds_mean=24.5 rounds_max=35 writes_per_query=228.8 ops_mean=325.8 ops_var=55928.6 ops_min=22 ops_max=1003 ops_win100_max=361.3 ms_per_query=0.443 max_stash=0 checked=500 mismatches=0
+result scheme=layered kind=quantile mode=dry-run queries=500 budget=1232 real_mean=118.9 real_var=6186.8 real_min=11 real_max=344 win10_max=195.8 win100_max=130.6 padded_per_query=1232.0 overflows=0 rounds_mean=35.1 rounds_max=51 writes_per_query=254.7 ops_mean=373.6 ops_var=69366.5 ops_min=22 ops_max=1111 ops_win100_max=412.7 ms_per_query=0.554 max_stash=0 checked=500 mismatches=0
+build scheme=sparq objects=20316 entries=20316 extra=none build_s=0.01 max_fanin=1 heights=10x10
+budget scheme=sparq kind=group+semi analytic_reads=780
+result scheme=sparq kind=group+semi mode=dry-run queries=500 budget=780 real_mean=66.0 real_var=1105.4 real_min=11 real_max=172 win10_max=94.1 win100_max=73.3 padded_per_query=780.0 overflows=0 rounds_mean=12.0 rounds_max=15 writes_per_query=66.0 ops_mean=132.1 ops_var=4421.4 ops_min=22 ops_max=344 ops_win100_max=146.7 ms_per_query=0.126 max_stash=0 checked=500 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

@@ -1,0 +1,4 @@
+config dataset=nh_64 d=3 N=4096 n=64x64x64 values=hash16 queries=300 seed=1 crypto=false block_size=256 branching=126 fanin_cap=raw pad=Analytic
+build scheme=layered objects=141632 entries=79699 extra=copies:0/seg:0/wav:0/bst:129 build_s=0.09 max_fanin=casc:33/dims:21x33/wav:0 heights=skel:6x6/bst:7/seg:0/wav:12 sigma=3972
+budget scheme=layered kind=group analytic_reads=786
+result scheme=layered kind=group mode=dry-run queries=300 budget=786 real_mean=106.1 real_var=7258.8 real_min=10 real_max=328 win10_max=164.9 win100_max=116.0 padded_per_query=786.0 overflows=0 rounds_mean=20.3 rounds_max=29 writes_per_query=220.5 ops_mean=326.5 ops_var=90782.1 ops_min=20 ops_max=1225 ops_win100_max=364.5 ms_per_query=0.269 max_stash=0 checked=300 mismatches=0

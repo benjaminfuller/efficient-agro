@@ -1,0 +1,8 @@
+config dataset=gowalla_2d_100k d=2 N=102843 n=6438x4500 values=hash16 queries=500 seed=1 crypto=false block_size=256 branching=2 fanin_cap=raw pad=Analytic
+build scheme=layered objects=976188 entries=465103 extra=copies:0/seg:0/wav:0/bst:9001 build_s=0.82 max_fanin=casc:952/wav:0 heights=skel:13/bst:13/seg:0/wav:16 sigma=51977
+budget scheme=layered kind=group analytic_reads=134
+result scheme=layered kind=group mode=dry-run queries=500 budget=134 real_mean=73.3 real_var=2630.2 real_min=14 real_max=183 win10_max=122.6 win100_max=83.0 padded_per_query=137.0 overflows=85 rounds_mean=35.6 rounds_max=72 writes_per_query=106.1 ops_mean=179.5 ops_var=17647.1 ops_min=28 ops_max=470 ops_win100_max=204.3 ms_per_query=0.168 max_stash=0 checked=0 mismatches=0
+build scheme=sparq objects=904456 entries=904456 extra=none build_s=0.50 max_fanin=1 heights=13x13
+budget scheme=sparq kind=group+semi analytic_reads=1326
+result scheme=sparq kind=group+semi mode=dry-run queries=500 budget=1326 real_mean=88.7 real_var=2793.8 real_min=23 real_max=239 win10_max=144.2 win100_max=96.5 padded_per_query=1326.0 overflows=0 rounds_mean=15.1 rounds_max=19 writes_per_query=88.7 ops_mean=177.3 ops_var=11175.1 ops_min=46 ops_max=478 ops_win100_max=193.0 ms_per_query=0.720 max_stash=0 checked=0 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

@@ -1,0 +1,6 @@
+/target
+/datasets
+*.aux
+*.log
+*.out
+!results/**/*.log
