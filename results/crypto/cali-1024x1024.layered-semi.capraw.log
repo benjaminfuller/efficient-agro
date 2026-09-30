@@ -1,0 +1,7 @@
+config dataset=cali-1024x1024 d=2 N=17700 n=1015x961 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=565044 entries=93201 extra=copies:0/seg:95809/wav:0/bst:1923 build_s=0.18 max_fanin=casc:366/dims:366/wav:0 heights=skel:10/bst:10/seg:10/wav:14 sigma=15550
+budget scheme=layered kind=semi analytic_reads=1056
+storage scheme=layered allocated=565044 capacity=1048576 bucket_levels=20 block_bytes=256 server_bytes=1073741824 path_bytes=20480
+cells scheme=layered block_bytes=256 max_root=56 max_node=250 max_kids=246
+install scheme=layered capacity=1048576 block_bytes=256 bucket_levels=20 path_bytes=20480 install_s=3.49 install_max_stash=0
+result scheme=layered kind=semi mode=crypto queries=100 budget=1056 real_mean=171.1 real_var=10731.3 real_min=18 real_max=370 win10_max=224.6 win100_max=171.1 padded_per_query=1056.0 overflows=0 rounds_mean=29.9 rounds_max=41 writes_per_query=380.2 ops_mean=551.2 ops_var=119781.3 ops_min=36 ops_max=1299 ops_win100_max=551.2 ms_per_query=786.976 max_stash=38 checked=100 mismatches=0

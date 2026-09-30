@@ -1,0 +1,7 @@
+config dataset=amazon-books d=1 N=7836 n=7836 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=23510 entries=7837 extra=copies:0/seg:0/wav:0/bst:15673 build_s=0.00 max_fanin=casc:1/dims:/wav:0 heights=skel:/bst:13/seg:0/wav:13 sigma=7397
+budget scheme=layered kind=group analytic_reads=30
+storage scheme=layered allocated=23510 capacity=32768 bucket_levels=15 block_bytes=256 server_bytes=33554432 path_bytes=15360
+cells scheme=layered block_bytes=256 max_root=41 max_node=0 max_kids=0
+install scheme=layered capacity=32768 block_bytes=256 bucket_levels=15 path_bytes=15360 install_s=0.12 install_max_stash=0
+result scheme=layered kind=group mode=crypto queries=100 budget=30 real_mean=26.9 real_var=3.6 real_min=19 real_max=29 win10_max=28.1 win100_max=26.9 padded_per_query=30.0 overflows=0 rounds_mean=15.0 rounds_max=15 writes_per_query=26.9 ops_mean=53.9 ops_var=14.4 ops_min=38 ops_max=58 ops_win100_max=53.9 ms_per_query=13.656 max_stash=4 checked=100 mismatches=0
