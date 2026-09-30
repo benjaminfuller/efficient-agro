@@ -9,3 +9,6 @@ build scheme=sparq objects=371244 entries=371244 extra=none build_s=0.12 max_fan
 budget scheme=sparq kind=group+semi analytic_reads=1036
 storage scheme=sparq allocated=371244 capacity=524288 bucket_levels=19 block_bytes=256 server_bytes=536870912 path_bytes=19456
 cells scheme=sparq block_bytes=256 max_root=50 max_node=0 max_kids=0
+install scheme=sparq capacity=524288 block_bytes=256 bucket_levels=19 path_bytes=19456 install_s=12631.26 install_max_stash=23091
+result scheme=sparq kind=group+semi mode=crypto queries=100 budget=1036 real_mean=62.2 real_var=1007.5 real_min=15 real_max=158 win10_max=83.9 win100_max=62.2 padded_per_query=1036.0 overflows=0 rounds_mean=13.3 rounds_max=16 writes_per_query=62.2 ops_mean=124.4 ops_var=4030.0 ops_min=30 ops_max=316 ops_win100_max=124.4 ms_per_query=79952.910 max_stash=22419 checked=100 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0
