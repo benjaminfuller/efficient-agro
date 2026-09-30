@@ -9,6 +9,7 @@
 //!     [--kinds group,semi,quantile] [--queries 100] [--seed 1] [--values hash16|dataset]
 //!     [--crypto] [--block-size 128|256|512|1024] [--branching 30] [--fanin-cap K]
 //!     [--pad analytic|none|N] [--stash-size 40] [--check] [--csv results.csv]
+//!     [--max-server-gb G]   (crypto: skip a scheme whose encrypted tree exceeds G GB)
 //! ```
 
 use osam_plus::StashSize;
@@ -39,6 +40,8 @@ struct Config {
     stash_size: StashSize,
     check: bool,
     csv: Option<String>,
+    /// Crypto only: skip a scheme whose encrypted tree would exceed this many GB.
+    max_server_gb: Option<f64>,
     /// Report the largest encoded cells in a dry-run (copies the whole store).
     cell_sizes: bool,
 }
@@ -67,6 +70,7 @@ fn parse() -> Result<Config, String> {
         check: false,
         cell_sizes: false,
         csv: None,
+        max_server_gb: None,
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut i = 0;
@@ -105,6 +109,9 @@ fn parse() -> Result<Config, String> {
             "--check" => c.check = true,
             "--cell-sizes" => c.cell_sizes = true,
             "--csv" => c.csv = Some(val(&mut i)?),
+            "--max-server-gb" => {
+                c.max_server_gb = Some(val(&mut i)?.parse().map_err(|_| "bad --max-server-gb")?)
+            }
             "-h" | "--help" => return Err("see the header of src/bin/sparq_bench.rs".into()),
             a => return Err(format!("unknown argument {a}")),
         }
@@ -366,6 +373,21 @@ fn install_and_run<X: Scheme, const B: usize>(
     let capacity = allocated
         .checked_next_power_of_two()
         .ok_or_else(|| SamError::Backend("capacity overflow".into()))?;
+    let server_gb = (capacity as f64) * 4.0 * (B as f64) / 1e9;
+    if let Some(max) = cfg.max_server_gb {
+        if server_gb > max {
+            writeln!(
+                out,
+                "skip scheme={} capacity={} server_gb={:.2} max_server_gb={} reason=encrypted tree too large",
+                scheme.label(),
+                capacity,
+                server_gb,
+                max
+            )
+            .ok();
+            return Ok(());
+        }
+    }
     let codec = FixedSizeCodec::new(BalancedCellValueCodec::new(ObjCodec::new(cfg.branching)));
     let mut enc = PathOsamSam::<Cell, _, B, 4, 1>::from_snapshot(
         snapshot,
