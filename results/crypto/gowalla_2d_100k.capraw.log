@@ -1,0 +1,5 @@
+config dataset=gowalla_2d_100k d=2 N=102843 n=6438x4500 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=945350 entries=465103 extra=copies:0/seg:0/wav:0/bst:9001 build_s=0.49 max_fanin=casc:952/dims:952/wav:0 heights=skel:13/bst:13/seg:0/wav:16 sigma=51977
+budget scheme=layered kind=group analytic_reads=238
+storage scheme=layered allocated=945350 capacity=1048576 bucket_levels=20 block_bytes=256 server_bytes=1073741824 path_bytes=20480
+cells scheme=layered block_bytes=256 max_root=85 max_node=250 max_kids=246

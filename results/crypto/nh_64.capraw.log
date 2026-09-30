@@ -1,0 +1,7 @@
+config dataset=nh_64 d=3 N=4096 n=64x64x64 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=407621 entries=79699 extra=copies:0/seg:75263/wav:0/bst:129 build_s=0.14 max_fanin=casc:33/dims:21x33/wav:0 heights=skel:6x6/bst:7/seg:7/wav:12 sigma=3972
+budget scheme=layered kind=group analytic_reads=1122
+budget scheme=layered kind=semi analytic_reads=6834
+storage scheme=layered allocated=407621 capacity=524288 bucket_levels=19 block_bytes=256 server_bytes=536870912 path_bytes=19456
+cells scheme=layered block_bytes=256 max_root=86 max_node=250 max_kids=246
+install scheme=layered capacity=524288 block_bytes=256 bucket_levels=19 path_bytes=19456 install_s=15796.69 install_max_stash=26186

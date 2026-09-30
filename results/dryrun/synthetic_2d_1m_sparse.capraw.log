@@ -1,0 +1,12 @@
+config dataset=synthetic_2d_1m_sparse d=2 N=1000000 n=2048x2048 values=hash16 queries=1000 seed=1 crypto=false block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=21351261 entries=3564105 extra=copies:0/seg:3576671/wav:0/bst:4097 build_s=9.05 max_fanin=casc:16/dims:16/wav:0 heights=skel:11/bst:12/seg:12/wav:16 sigma=65536
+budget scheme=layered kind=group analytic_reads=116
+budget scheme=layered kind=semi analytic_reads=1260
+storage scheme=layered allocated=21351261 capacity=33554432 bucket_levels=25 block_bytes=256 server_bytes=34359738368 path_bytes=25600
+result scheme=layered kind=group mode=dry-run queries=1000 budget=116 real_mean=71.4 real_var=36.9 real_min=13 real_max=80 win10_max=75.2 win100_max=72.5 padded_per_query=116.0 overflows=0 rounds_mean=26.8 rounds_max=29 writes_per_query=92.7 ops_mean=164.1 ops_var=267.7 ops_min=26 ops_max=204 ops_win100_max=167.2 ms_per_query=0.083 max_stash=0 checked=1000 mismatches=0
+result scheme=layered kind=semi mode=dry-run queries=1000 budget=1260 real_mean=378.4 real_var=15725.5 real_min=13 real_max=730 win10_max=508.4 win100_max=403.0 padded_per_query=1260.0 overflows=0 rounds_mean=40.7 rounds_max=45 writes_per_query=695.9 ops_mean=1074.4 ops_var=136712.4 ops_min=26 ops_max=2118 ops_win100_max=1146.8 ms_per_query=0.575 max_stash=0 checked=1000 mismatches=0
+build scheme=sparq objects=7120020 entries=7120020 extra=none build_s=2.45 max_fanin=1 heights=11x11
+budget scheme=sparq kind=group+semi analytic_reads=946
+storage scheme=sparq allocated=7120020 capacity=8388608 bucket_levels=23 block_bytes=256 server_bytes=8589934592 path_bytes=23552
+result scheme=sparq kind=group+semi mode=dry-run queries=1000 budget=946 real_mean=315.9 real_var=11577.2 real_min=11 real_max=645 win10_max=449.3 win100_max=340.8 padded_per_query=946.0 overflows=0 rounds_mean=21.8 rounds_max=23 writes_per_query=315.9 ops_mean=631.7 ops_var=46308.8 ops_min=22 ops_max=1290 ops_win100_max=681.5 ms_per_query=0.831 max_stash=0 checked=1000 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

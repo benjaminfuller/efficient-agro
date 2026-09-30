@@ -1,0 +1,14 @@
+config dataset=cali-1024x1024 d=2 N=17700 n=1015x961 values=hash16 queries=1000 seed=1 crypto=false block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=6952045 entries=93201 extra=copies:0/seg:95809/wav:3351488/bst:1923 build_s=2.49 max_fanin=casc:366/dims:366/wav:35 heights=skel:10/bst:10/seg:10/wav:14 sigma=15550
+budget scheme=layered kind=group analytic_reads=144
+budget scheme=layered kind=semi analytic_reads=1056
+budget scheme=layered kind=quantile analytic_reads=2112
+storage scheme=layered allocated=6952045 capacity=8388608 bucket_levels=23 block_bytes=256 server_bytes=8589934592 path_bytes=23552
+result scheme=layered kind=group mode=dry-run queries=1000 budget=144 real_mean=56.1 real_var=422.2 real_min=14 real_max=95 win10_max=75.5 win100_max=60.7 padded_per_query=144.0 overflows=0 rounds_mean=24.7 rounds_max=37 writes_per_query=148.2 ops_mean=204.3 ops_var=11743.9 ops_min=28 ops_max=573 ops_win100_max=225.7 ms_per_query=0.064 max_stash=0 checked=1000 mismatches=0
+result scheme=layered kind=semi mode=dry-run queries=1000 budget=1056 real_mean=172.0 real_var=11024.0 real_min=14 real_max=440 win10_max=276.0 win100_max=193.8 padded_per_query=1056.0 overflows=0 rounds_mean=29.9 rounds_max=43 writes_per_query=385.1 ops_mean=557.2 ops_var=126963.5 ops_min=28 ops_max=1548 ops_win100_max=631.4 ms_per_query=0.280 max_stash=0 checked=1000 mismatches=0
+result scheme=layered kind=quantile mode=dry-run queries=1000 budget=2112 real_mean=189.4 real_var=12266.8 real_min=14 real_max=467 win10_max=294.2 win100_max=211.3 padded_per_query=2112.0 overflows=0 rounds_mean=43.9 rounds_max=62 writes_per_query=410.1 ops_mean=599.6 ops_var=138065.1 ops_min=28 ops_max=1602 ops_win100_max=672.4 ms_per_query=1.048 max_stash=0 checked=1000 mismatches=0
+build scheme=sparq objects=182344 entries=182344 extra=none build_s=0.04 max_fanin=1 heights=10x10
+budget scheme=sparq kind=group+semi analytic_reads=780
+storage scheme=sparq allocated=182344 capacity=262144 bucket_levels=18 block_bytes=256 server_bytes=268435456 path_bytes=18432
+result scheme=sparq kind=group+semi mode=dry-run queries=1000 budget=780 real_mean=114.3 real_var=3336.0 real_min=18 real_max=289 win10_max=162.3 win100_max=124.0 padded_per_query=780.0 overflows=0 rounds_mean=15.3 rounds_max=18 writes_per_query=114.3 ops_mean=228.6 ops_var=13344.0 ops_min=36 ops_max=578 ops_win100_max=248.0 ms_per_query=0.081 max_stash=0 checked=1000 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

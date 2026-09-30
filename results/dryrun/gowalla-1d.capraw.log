@@ -1,0 +1,12 @@
+config dataset=gowalla-1d d=1 N=4454245 n=4454245 values=hash16 queries=1000 seed=1 crypto=false block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=31179726 entries=4454246 extra=copies:0/seg:4454254/wav:0/bst:8908491 build_s=14.05 max_fanin=casc:1/dims:/wav:0 heights=skel:/bst:23/seg:23/wav:16 sigma=65536
+budget scheme=layered kind=group analytic_reads=50
+budget scheme=layered kind=semi analytic_reads=138
+storage scheme=layered allocated=31179726 capacity=33554432 bucket_levels=25 block_bytes=256 server_bytes=34359738368 path_bytes=25600
+result scheme=layered kind=group mode=dry-run queries=1000 budget=50 real_mean=44.8 real_var=9.8 real_min=27 real_max=49 win10_max=46.8 win100_max=45.5 padded_per_query=50.0 overflows=0 rounds_mean=24.2 rounds_max=25 writes_per_query=44.8 ops_mean=89.5 ops_var=39.2 ops_min=54 ops_max=98 ops_win100_max=91.0 ms_per_query=0.037 max_stash=0 checked=1000 mismatches=0
+result scheme=layered kind=semi mode=dry-run queries=1000 budget=138 real_mean=119.3 real_var=240.5 real_min=39 real_max=133 win10_max=129.8 win100_max=123.0 padded_per_query=138.0 overflows=0 rounds_mean=61.7 rounds_max=69 writes_per_query=193.6 ops_mean=312.9 ops_var=1871.4 ops_min=90 ops_max=350 ops_win100_max=323.3 ms_per_query=0.149 max_stash=0 checked=1000 mismatches=0
+build scheme=sparq objects=8908489 entries=8908489 extra=none build_s=2.86 max_fanin=1 heights=23
+budget scheme=sparq kind=group+semi analytic_reads=91
+storage scheme=sparq allocated=8908489 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
+result scheme=sparq kind=group+semi mode=dry-run queries=1000 budget=91 real_mean=78.4 real_var=57.3 real_min=45 real_max=91 win10_max=84.2 win100_max=79.9 padded_per_query=91.0 overflows=0 rounds_mean=22.8 rounds_max=24 writes_per_query=78.4 ops_mean=156.8 ops_var=229.1 ops_min=90 ops_max=182 ops_win100_max=159.9 ms_per_query=0.056 max_stash=0 checked=1000 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0
