@@ -36,7 +36,7 @@ if [ "$MODE_FLAG" = "--crypto" ]; then
   KINDS_LARGE="${KINDS_LARGE:-group}"
   EXTRA_SEMI="${EXTRA_SEMI-spitz-1024x1024 nh_64}"
   LARGE="${LARGE:-0}"
-  JOBS="${JOBS:-4}"
+  JOBS="${JOBS:-192}"
 else
   MODE=dryrun
   MODE_FLAG=""

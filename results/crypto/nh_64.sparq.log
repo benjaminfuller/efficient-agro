@@ -1,0 +1,9 @@
+nohup: ignoring input
+config dataset=nh_64 d=3 N=4096 n=64x64x64 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=sparq objects=127267 entries=127267 extra=none build_s=0.03 max_fanin=1 heights=6x6x6
+budget scheme=sparq kind=group+semi analytic_reads=3059
+storage scheme=sparq allocated=127267 capacity=131072 bucket_levels=17 block_bytes=256 server_bytes=134217728 path_bytes=17408
+cells scheme=sparq block_bytes=256 max_root=45 max_node=0 max_kids=0
+install scheme=sparq capacity=131072 block_bytes=256 bucket_levels=17 path_bytes=17408 install_s=0.52 install_max_stash=0
+result scheme=sparq kind=group+semi mode=crypto queries=100 budget=3059 real_mean=93.5 real_var=4168.2 real_min=21 real_max=335 win10_max=132.4 win100_max=93.5 padded_per_query=3059.0 overflows=0 rounds_mean=14.5 rounds_max=15 writes_per_query=93.5 ops_mean=187.1 ops_var=16672.8 ops_min=42 ops_max=670 ops_win100_max=187.1 ms_per_query=1376.208 max_stash=37 checked=100 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0
