@@ -1,0 +1,8 @@
+config dataset=spitz-1024x1024 d=2 N=1480 n=662x524 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=sparq objects=20316 entries=20316 extra=none build_s=0.00 max_fanin=1 heights=10x10
+budget scheme=sparq kind=group+semi analytic_reads=780
+storage scheme=sparq allocated=20316 capacity=32768 bucket_levels=15 block_bytes=256 server_bytes=33554432 path_bytes=15360
+cells scheme=sparq block_bytes=256 max_root=46 max_node=0 max_kids=0
+install scheme=sparq capacity=32768 block_bytes=256 bucket_levels=15 path_bytes=15360 evict_paths=2 install_s=0.11 install_max_stash=0
+result scheme=sparq kind=group+semi mode=crypto queries=100 budget=780 real_mean=68.7 real_var=1171.3 real_min=17 real_max=172 win10_max=94.1 win100_max=68.7 padded_per_query=780.0 overflows=0 rounds_mean=12.1 rounds_max=14 writes_per_query=68.7 ops_mean=137.4 ops_var=4685.3 ops_min=34 ops_max=344 ops_win100_max=137.4 ms_per_query=555.403 max_stash=14 checked=100 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

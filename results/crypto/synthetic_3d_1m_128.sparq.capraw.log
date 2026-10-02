@@ -1,0 +1,6 @@
+config dataset=synthetic_3d_1m_128 d=3 N=1000000 n=128x128x128 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=sparq objects=13058919 entries=13058919 extra=none build_s=5.38 max_fanin=1 heights=7x7x7
+budget scheme=sparq kind=group+semi analytic_reads=4941
+storage scheme=sparq allocated=13058919 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
+cells scheme=sparq block_bytes=256 max_root=54 max_node=0 max_kids=0
+install scheme=sparq capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 evict_paths=2 install_s=57.08 install_max_stash=0

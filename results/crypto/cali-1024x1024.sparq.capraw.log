@@ -1,0 +1,8 @@
+config dataset=cali-1024x1024 d=2 N=17700 n=1015x961 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=sparq objects=182344 entries=182344 extra=none build_s=0.05 max_fanin=1 heights=10x10
+budget scheme=sparq kind=group+semi analytic_reads=780
+storage scheme=sparq allocated=182344 capacity=262144 bucket_levels=18 block_bytes=256 server_bytes=268435456 path_bytes=18432
+cells scheme=sparq block_bytes=256 max_root=48 max_node=0 max_kids=0
+install scheme=sparq capacity=262144 block_bytes=256 bucket_levels=18 path_bytes=18432 evict_paths=2 install_s=0.91 install_max_stash=0
+result scheme=sparq kind=group+semi mode=crypto queries=100 budget=780 real_mean=115.6 real_var=3340.5 real_min=22 real_max=242 win10_max=145.9 win100_max=115.6 padded_per_query=780.0 overflows=0 rounds_mean=15.3 rounds_max=18 writes_per_query=115.6 ops_mean=231.2 ops_var=13361.9 ops_min=44 ops_max=484 ops_win100_max=231.2 ms_per_query=867.545 max_stash=16 checked=100 mismatches=0
+sparq_schedule max_level_ratio=1.000 level_overflows=0

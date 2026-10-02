@@ -1,0 +1,7 @@
+config dataset=spitz-1024x1024 d=2 N=1480 n=662x524 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=26674 entries=11481 extra=copies:0/seg:0/wav:0/bst:1049 build_s=0.01 max_fanin=casc:89/dims:89/wav:0 heights=skel:10/bst:10/seg:0/wav:11 sigma=1461
+budget scheme=layered kind=group analytic_reads=144
+storage scheme=layered allocated=26674 capacity=32768 bucket_levels=15 block_bytes=256 server_bytes=33554432 path_bytes=15360
+cells scheme=layered block_bytes=256 max_root=75 max_node=250 max_kids=246
+install scheme=layered capacity=32768 block_bytes=256 bucket_levels=15 path_bytes=15360 evict_paths=2 install_s=0.11 install_max_stash=0
+result scheme=layered kind=group mode=crypto queries=100 budget=144 real_mean=49.6 real_var=449.0 real_min=11 real_max=83 win10_max=65.9 win100_max=49.6 padded_per_query=144.0 overflows=0 rounds_mean=22.1 rounds_max=31 writes_per_query=125.3 ops_mean=174.9 ops_var=8673.9 ops_min=22 ops_max=358 ops_win100_max=174.9 ms_per_query=105.043 max_stash=34 checked=100 mismatches=0
