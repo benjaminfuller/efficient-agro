@@ -26,6 +26,8 @@
 #   JOBS           small-dataset runs in parallel: 1 / 192
 #   JOBS_LARGE     1M-point runs in parallel: 1 / 1
 #   MAX_SERVER_GB  crypto: skip runs whose encrypted tree exceeds this (unset = no limit)
+#   EVICT_PATHS    crypto: eviction paths per OSAM+ read, 1 or 2 (default 2, as in the
+#                  Concrete OSAM graph benchmark; printed in each install line)
 #   SKIP_DONE      crypto: skip runs whose log already has a result: 1
 #   CAPS           fan-in caps to sweep: "raw"
 #
@@ -54,6 +56,7 @@ else
   SKIP_DONE=0
 fi
 MAX_SERVER_GB="${MAX_SERVER_GB:-}"
+EVICT_PATHS="${EVICT_PATHS:-2}"
 CAPS="${CAPS:-raw}"
 BIN=./target/release/sparq_bench
 cargo build --release
@@ -92,6 +95,7 @@ run() {
   local extra=()
   [ "$cap" != raw ] && extra=(--fanin-cap "$cap")
   [ -n "$MAX_SERVER_GB" ] && [ -n "$MODE_FLAG" ] && extra+=(--max-server-gb "$MAX_SERVER_GB")
+  [ -n "$MODE_FLAG" ] && extra+=(--evict-paths "$EVICT_PATHS")
   local log csv
   if [ "$MODE" = crypto ]; then
     log="$OUT/${ds}.${label}.cap${cap}.log"
@@ -117,7 +121,7 @@ run() {
   grep -E '^(result|skip)' "$log" | cut -c1-160 || true
 }
 export -f run
-export BIN OUT MODE MODE_FLAG QUERIES MAX_SERVER_GB SKIP_DONE
+export BIN OUT MODE MODE_FLAG QUERIES MAX_SERVER_GB SKIP_DONE EVICT_PATHS
 
 echo "$(wc -l < "$small_jobs") small runs, $JOBS at a time"
 xargs -P "$JOBS" -L 1 bash -c 'run "$0" "$1" "$2" "$3" "$4"' < "$small_jobs"

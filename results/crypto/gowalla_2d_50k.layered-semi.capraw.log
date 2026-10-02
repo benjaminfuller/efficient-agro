@@ -1,7 +1,0 @@
-config dataset=gowalla_2d_50k d=2 N=50153 n=2127x2048 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=layered objects=1113576 entries=189875 extra=copies:0/seg:194528/wav:0/bst:4097 build_s=0.36 max_fanin=casc:583/dims:583/wav:0 heights=skel:12/bst:12/seg:12/wav:16 sigma=35014
-budget scheme=layered kind=semi analytic_reads=1460
-storage scheme=layered allocated=1113576 capacity=2097152 bucket_levels=21 block_bytes=256 server_bytes=2147483648 path_bytes=21504
-cells scheme=layered block_bytes=256 max_root=57 max_node=250 max_kids=246
-install scheme=layered capacity=2097152 block_bytes=256 bucket_levels=21 path_bytes=21504 install_s=6.57 install_max_stash=0
-result scheme=layered kind=semi mode=crypto queries=100 budget=1460 real_mean=91.3 real_var=9123.0 real_min=13 real_max=384 win10_max=138.5 win100_max=91.3 padded_per_query=1460.0 overflows=0 rounds_mean=25.0 rounds_max=43 writes_per_query=273.8 ops_mean=365.1 ops_var=147092.4 ops_min=26 ops_max=1466 ops_win100_max=365.1 ms_per_query=1297.838 max_stash=53 checked=100 mismatches=0

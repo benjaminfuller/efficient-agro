@@ -1,7 +1,0 @@
-config dataset=nh_64 d=3 N=4096 n=64x64x64 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=layered objects=4755095 entries=79699 extra=copies:0/seg:0/wav:3125634/bst:129 build_s=2.28 max_fanin=casc:33/dims:21x33/wav:28 heights=skel:6x6/bst:7/seg:0/wav:12 sigma=3972
-budget scheme=layered kind=quantile analytic_reads=11538
-storage scheme=layered allocated=4755095 capacity=8388608 bucket_levels=23 block_bytes=256 server_bytes=8589934592 path_bytes=23552
-cells scheme=layered block_bytes=256 max_root=65 max_node=250 max_kids=246
-install scheme=layered capacity=8388608 block_bytes=256 bucket_levels=23 path_bytes=23552 install_s=28.64 install_max_stash=0
-result scheme=layered kind=quantile mode=crypto queries=100 budget=11538 real_mean=227.6 real_var=62301.1 real_min=11 real_max=1250 win10_max=351.8 win100_max=227.6 padded_per_query=11538.0 overflows=0 rounds_mean=29.8 rounds_max=48 writes_per_query=387.8 ops_mean=615.4 ops_var=492129.1 ops_min=22 ops_max=3494 ops_win100_max=615.4 ms_per_query=11027.469 max_stash=31 checked=100 mismatches=0

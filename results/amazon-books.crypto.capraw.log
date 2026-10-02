@@ -1,5 +1,0 @@
-config dataset=amazon-books d=1 N=7836 n=7836 values=hash16 queries=1000 seed=1 crypto=true block_size=1024 branching=64 fanin_cap=raw pad=Analytic
-build scheme=layered objects=356966 entries=7837 extra=copies:0/seg:7841/wav:109270/bst:15673 build_s=0.09 max_fanin=casc:1/dims:/wav:25 heights=skel:/bst:13/seg:13/wav:13 sigma=7397
-budget scheme=layered kind=group analytic_reads=30
-budget scheme=layered kind=semi analytic_reads=78
-budget scheme=layered kind=quantile analytic_reads=82

@@ -1,7 +1,0 @@
-config dataset=synthetic_2d_1m-1024x1024 d=2 N=1000000 n=1024x1024 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=layered objects=10384402 entries=2048513 extra=copies:0/seg:2056054/wav:0/bst:2049 build_s=3.49 max_fanin=casc:5/dims:5/wav:0 heights=skel:10/bst:11/seg:11/wav:16 sigma=65536
-budget scheme=layered kind=semi analytic_reads=1066
-storage scheme=layered allocated=10384402 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
-cells scheme=layered block_bytes=256 max_root=61 max_node=50 max_kids=46
-install scheme=layered capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 install_s=50.03 install_max_stash=0
-result scheme=layered kind=semi mode=crypto queries=100 budget=1066 real_mean=306.6 real_var=12505.2 real_min=12 real_max=594 win10_max=363.1 win100_max=306.6 padded_per_query=1066.0 overflows=0 rounds_mean=36.7 rounds_max=41 writes_per_query=541.1 ops_mean=847.7 ops_var=106808.4 ops_min=24 ops_max=1694 ops_win100_max=847.7 ms_per_query=1110.112 max_stash=8 checked=100 mismatches=0

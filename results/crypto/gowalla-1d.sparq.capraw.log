@@ -1,8 +1,0 @@
-config dataset=gowalla-1d d=1 N=4454245 n=4454245 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=sparq objects=8908489 entries=8908489 extra=none build_s=2.90 max_fanin=1 heights=23
-budget scheme=sparq kind=group+semi analytic_reads=91
-storage scheme=sparq allocated=8908489 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
-cells scheme=sparq block_bytes=256 max_root=55 max_node=0 max_kids=0
-install scheme=sparq capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 install_s=49.26 install_max_stash=0
-result scheme=sparq kind=group+semi mode=crypto queries=100 budget=91 real_mean=76.8 real_var=76.5 real_min=47 real_max=89 win10_max=80.8 win100_max=76.8 padded_per_query=91.0 overflows=0 rounds_mean=22.8 rounds_max=24 writes_per_query=76.8 ops_mean=153.7 ops_var=306.1 ops_min=94 ops_max=178 ops_win100_max=153.7 ms_per_query=94.631 max_stash=6 checked=100 mismatches=0
-sparq_schedule max_level_ratio=1.000 level_overflows=0

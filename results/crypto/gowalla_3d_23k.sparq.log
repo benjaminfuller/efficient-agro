@@ -1,9 +1,0 @@
-nohup: ignoring input
-config dataset=gowalla_3d_23k d=3 N=23044 n=33x97x101 values=hash16 queries=20 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=sparq objects=410261 entries=410261 extra=none build_s=0.13 max_fanin=1 heights=6x7x7
-budget scheme=sparq kind=group+semi analytic_reads=4181
-storage scheme=sparq allocated=410261 capacity=524288 bucket_levels=19 block_bytes=256 server_bytes=536870912 path_bytes=19456
-cells scheme=sparq block_bytes=256 max_root=47 max_node=0 max_kids=0
-install scheme=sparq capacity=524288 block_bytes=256 bucket_levels=19 path_bytes=19456 install_s=2.01 install_max_stash=0
-result scheme=sparq kind=group+semi mode=crypto queries=20 budget=4181 real_mean=118.2 real_var=16133.9 real_min=11 real_max=329 win10_max=210.5 win100_max=NaN padded_per_query=4181.0 overflows=0 rounds_mean=11.4 rounds_max=21 writes_per_query=118.2 ops_mean=236.3 ops_var=64535.7 ops_min=22 ops_max=658 ops_win100_max=NaN ms_per_query=2457.600 max_stash=34 checked=20 mismatches=0
-sparq_schedule max_level_ratio=1.000 level_overflows=0

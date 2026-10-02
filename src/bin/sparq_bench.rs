@@ -9,6 +9,7 @@
 //!     [--kinds group,semi,quantile] [--queries 100] [--seed 1] [--values hash16|dataset]
 //!     [--crypto] [--block-size 128|256|512|1024] [--branching 30] [--fanin-cap K]
 //!     [--pad analytic|none|N] [--stash-size 40] [--check] [--csv results.csv]
+//!     [--evict-paths 1|2]   (crypto: eviction paths per read; default 2)
 //!     [--max-server-gb G]   (crypto: skip a scheme whose encrypted tree exceeds G GB)
 //! ```
 
@@ -38,6 +39,8 @@ struct Config {
     fanin_cap: Option<usize>,
     pad: Pad,
     stash_size: StashSize,
+    /// Crypto only: eviction paths per OSAM+ read (Path OSAM+ `P`).
+    evict_paths: usize,
     check: bool,
     csv: Option<String>,
     /// Crypto only: skip a scheme whose encrypted tree would exceed this many GB.
@@ -67,6 +70,7 @@ fn parse() -> Result<Config, String> {
         fanin_cap: None,
         pad: Pad::Analytic,
         stash_size: 40,
+        evict_paths: 2,
         check: false,
         cell_sizes: false,
         csv: None,
@@ -106,6 +110,12 @@ fn parse() -> Result<Config, String> {
                 }
             }
             "--stash-size" => c.stash_size = val(&mut i)?.parse().map_err(|_| "bad --stash-size")?,
+            "--evict-paths" => {
+                c.evict_paths = val(&mut i)?.parse().map_err(|_| "bad --evict-paths")?;
+                if !(1..=2).contains(&c.evict_paths) {
+                    return Err("--evict-paths must be 1 or 2".into());
+                }
+            }
             "--check" => c.check = true,
             "--cell-sizes" => c.cell_sizes = true,
             "--csv" => c.csv = Some(val(&mut i)?),
@@ -355,7 +365,7 @@ impl Config {
     }
 }
 
-fn install_and_run<X: Scheme, const B: usize>(
+fn install_and_run<X: Scheme, const B: usize, const P: usize>(
     cfg: &Config,
     scheme: &mut X,
     dry: DryRunSam<Cell>,
@@ -389,7 +399,7 @@ fn install_and_run<X: Scheme, const B: usize>(
         }
     }
     let codec = FixedSizeCodec::new(BalancedCellValueCodec::new(ObjCodec::new(cfg.branching)));
-    let mut enc = PathOsamSam::<Cell, _, B, 4, 1>::from_snapshot(
+    let mut enc = PathOsamSam::<Cell, _, B, 4, P>::from_snapshot(
         snapshot,
         capacity,
         cfg.stash_size,
@@ -405,12 +415,13 @@ fn install_and_run<X: Scheme, const B: usize>(
     let levels = capacity.ilog2(); // bucket levels = height + 1 = log2(capacity)
     writeln!(
         out,
-        "install scheme={} capacity={} block_bytes={} bucket_levels={} path_bytes={} install_s={:.2} install_max_stash={}",
+        "install scheme={} capacity={} block_bytes={} bucket_levels={} path_bytes={} evict_paths={} install_s={:.2} install_max_stash={}",
         scheme.label(),
         capacity,
         B,
         levels,
         levels as usize * 4 * B,
+        P,
         install_s,
         enc.build_max_stash_occupancy()
     )
@@ -484,10 +495,14 @@ fn dispatch<X: Scheme>(
         return run_queries(cfg, scheme, &mut dry, queries, truths, "dry-run", out, csv, build_line);
     }
     match cfg.block_size {
-        128 => install_and_run::<X, 128>(cfg, scheme, dry, queries, truths, out, csv, build_line),
-        256 => install_and_run::<X, 256>(cfg, scheme, dry, queries, truths, out, csv, build_line),
-        512 => install_and_run::<X, 512>(cfg, scheme, dry, queries, truths, out, csv, build_line),
-        1024 => install_and_run::<X, 1024>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        128 if cfg.evict_paths == 1 => install_and_run::<X, 128, 1>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        128 => install_and_run::<X, 128, 2>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        256 if cfg.evict_paths == 1 => install_and_run::<X, 256, 1>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        256 => install_and_run::<X, 256, 2>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        512 if cfg.evict_paths == 1 => install_and_run::<X, 512, 1>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        512 => install_and_run::<X, 512, 2>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        1024 if cfg.evict_paths == 1 => install_and_run::<X, 1024, 1>(cfg, scheme, dry, queries, truths, out, csv, build_line),
+        1024 => install_and_run::<X, 1024, 2>(cfg, scheme, dry, queries, truths, out, csv, build_line),
         _ => Err(SamError::InvalidParameter("block size must be 128, 256, 512 or 1024")),
     }
 }
