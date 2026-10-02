@@ -11,18 +11,36 @@
 //!     [--pad analytic|none|N] [--stash-size 40] [--check] [--csv results.csv]
 //!     [--evict-paths 1|2]   (crypto: eviction paths per read; default 2)
 //!     [--max-server-gb G]   (crypto: skip a scheme whose encrypted tree exceeds G GB)
+//!     [--trace PREFIX]      per-operation timing and stash occupancy (see below)
+//! ```
+//!
+//! `--trace PREFIX` times every SAM operation of every query and samples the
+//! stash before and after it. It prints one `trace` summary line per scheme and
+//! tail, separating each query's real phase from its padding phase, and writes
+//! every operation to `PREFIX.layered-<tail>.csv` or `PREFIX.sparq.csv` with the columns
+//! `query,phase,op,ns,stash_before,stash_after,structure` (one line per SAM call;
+//! a `write_batch` line covers several cells)
+//! (`phase` is `real` or `pad`; `op` is `read`, `write`, `write_batch`,
+//! `alloc` or `flush`; the stash columns are empty in a dry run). The client's
+//! own work in the real phase is the phase's wall time minus its SAM time.
+//! Use few queries: the file has one line per operation.
+//!
+//! ```text
 //! ```
 
 use osam_plus::StashSize;
 use sam_model::pointer::FixedSizeCodec;
 use sam_model::pointer::{BalancedCell, BalancedCellValueCodec, ValueCodec};
-use sam_model::{AccessPolicy, AccessStrategy, DryRunSam, PathOsamSam, SamError, SnapshotBlock};
+use sam_model::{
+    AccessPolicy, AccessStrategy, Address, DryRunSam, MemoryClass, PathOsamSam, SamError,
+    SingleAccessMachine, SnapshotBlock, Stats,
+};
 use efficient_agro::ctx::{dummy_reads, reads, Cell, Ctx, Res, Sam};
 use efficient_agro::data::{oracle, random_queries, Dataset, Query, Truth, ValueMode};
 use efficient_agro::layered::{Kind, Layered, LayeredConfig, Tails};
 use efficient_agro::obj::ObjCodec;
 use efficient_agro::sparq::Sparq;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::time::Instant;
 
 #[derive(Clone, Debug)]
@@ -43,6 +61,8 @@ struct Config {
     evict_paths: usize,
     check: bool,
     csv: Option<String>,
+    /// `--trace PREFIX`: per-operation trace files and summary lines.
+    trace: Option<String>,
     /// Crypto only: skip a scheme whose encrypted tree would exceed this many GB.
     max_server_gb: Option<f64>,
     /// Report the largest encoded cells in a dry-run (copies the whole store).
@@ -74,6 +94,7 @@ fn parse() -> Result<Config, String> {
         check: false,
         cell_sizes: false,
         csv: None,
+        trace: None,
         max_server_gb: None,
     };
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -119,6 +140,7 @@ fn parse() -> Result<Config, String> {
             "--check" => c.check = true,
             "--cell-sizes" => c.cell_sizes = true,
             "--csv" => c.csv = Some(val(&mut i)?),
+            "--trace" => c.trace = Some(val(&mut i)?),
             "--max-server-gb" => {
                 c.max_server_gb = Some(val(&mut i)?.parse().map_err(|_| "bad --max-server-gb")?)
             }
@@ -253,19 +275,26 @@ fn run_queries<X: Scheme, S: Sam>(
         };
         let mut s = Series::default();
         sam.reset_stash_maximum();
-        for (q, truth) in queries.iter().zip(truths) {
+        let label = if scheme.label() == "sparq" { "group+semi".to_string() } else { kind.label().to_string() };
+        let tag = if scheme.label() == "sparq" { "sparq".to_string() } else { format!("{}-{}", scheme.label(), kind.label()) };
+        let mut tracer = Tracer::new(cfg.trace.as_deref(), &tag)?;
+        for (qi, (q, truth)) in queries.iter().zip(truths).enumerate() {
             let r0 = reads(sam);
             let w0 = sam.stats().operations.writes;
             let clock = Instant::now();
-            let (got, rounds) = scheme.run(&mut ctx, sam, q, kind)?;
-            let real = reads(sam) - r0;
+            let mut traced = Traced { sam: &mut *sam, t: &mut tracer };
+            traced.t.start(qi, Phase::Real);
+            let (got, rounds) = scheme.run(&mut ctx, &mut traced, q, kind)?;
+            let real = reads(traced.sam) - r0;
+            traced.t.start(qi, Phase::Pad);
             if let Some(t) = budget {
                 if real > t {
                     s.overflows += 1;
                 } else {
-                    dummy_reads(sam, t - real)?;
+                    dummy_reads(&mut traced, t - real)?;
                 }
             }
+            traced.t.finish();
             s.nanos.push(clock.elapsed().as_nanos());
             s.writes += sam.stats().operations.writes - w0;
             s.padded_total += reads(sam) - r0;
@@ -286,7 +315,6 @@ fn run_queries<X: Scheme, S: Sam>(
         let (omean, ovar, omin, omax) = stats(&s.ops);
         let ms = s.nanos.iter().sum::<u128>() as f64 / 1e6 / s.real.len().max(1) as f64;
         let stash = sam.stats().stash.map(|x| x.maximum).unwrap_or(0);
-        let label = if scheme.label() == "sparq" { "group+semi".to_string() } else { kind.label().to_string() };
         let line = format!(
             "result scheme={} kind={} mode={} queries={} budget={} real_mean={:.1} real_var={:.1} real_min={} real_max={} \
              win10_max={:.1} win100_max={:.1} padded_per_query={:.1} overflows={} rounds_mean={:.1} rounds_max={} \
@@ -319,6 +347,9 @@ fn run_queries<X: Scheme, S: Sam>(
             s.mismatches
         );
         writeln!(out, "{line}").ok();
+        if let Some(t) = tracer.summary(&scheme.label(), &label, s.real.len()) {
+            writeln!(out, "{t}").ok();
+        }
         if let Some(f) = csv.as_mut() {
             let mut kv = std::collections::BTreeMap::new();
             for l in [build_line, line.as_str()] {
@@ -618,4 +649,212 @@ fn real_main(cfg: &Config) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// --trace: per-operation timing and stash occupancy.
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Phase {
+    Real,
+    Pad,
+}
+
+impl Phase {
+    fn label(self) -> &'static str {
+        match self {
+            Phase::Real => "real",
+            Phase::Pad => "pad",
+        }
+    }
+}
+
+/// Totals for one phase over all queries.
+#[derive(Default)]
+struct PhaseTotals {
+    reads: u64,
+    read_ns: u128,
+    writes: u64,
+    write_ns: u128,
+    /// Allocations, flushes and anything else that is not a read or a write.
+    other_ns: u128,
+    /// Sum and maximum of the stash occupancy sampled before each read.
+    stash_sum: u128,
+    stash_max: u64,
+    stash_samples: u64,
+    /// Wall time of the phase, including the client's own work.
+    wall_ns: u128,
+}
+
+struct Tracer {
+    enabled: bool,
+    file: Option<BufWriter<std::fs::File>>,
+    totals: [PhaseTotals; 2],
+    query: usize,
+    phase: Phase,
+    phase_clock: Option<Instant>,
+}
+
+impl Tracer {
+    fn new(prefix: Option<&str>, tag: &str) -> Res<Self> {
+        let file = match prefix {
+            None => None,
+            Some(p) => {
+                let path = format!("{p}.{tag}.csv");
+                let io = |e: std::io::Error| SamError::Backend(format!("--trace {path}: {e}"));
+                let mut f = BufWriter::new(std::fs::File::create(&path).map_err(io)?);
+                writeln!(f, "query,phase,op,ns,stash_before,stash_after,structure").map_err(io)?;
+                Some(f)
+            }
+        };
+        Ok(Self {
+            enabled: prefix.is_some(),
+            file,
+            totals: Default::default(),
+            query: 0,
+            phase: Phase::Real,
+            phase_clock: None,
+        })
+    }
+
+    /// Starts `phase` of query `query`, closing the previous phase.
+    fn start(&mut self, query: usize, phase: Phase) {
+        if !self.enabled {
+            return;
+        }
+        self.finish();
+        self.query = query;
+        self.phase = phase;
+        self.phase_clock = Some(Instant::now());
+    }
+
+    /// Closes the current phase.
+    fn finish(&mut self) {
+        if let Some(c) = self.phase_clock.take() {
+            self.totals[self.phase as usize].wall_ns += c.elapsed().as_nanos();
+        }
+    }
+
+    /// Records one operation; `cells` is the number of cells a write touches.
+    fn record(&mut self, op: &str, cells: u64, ns: u128, before: Option<u64>, after: Option<u64>, structure: &str) {
+        let t = &mut self.totals[self.phase as usize];
+        match op {
+            "read" => {
+                t.reads += 1;
+                t.read_ns += ns;
+                if let Some(b) = before {
+                    t.stash_sum += b as u128;
+                    t.stash_max = t.stash_max.max(b);
+                    t.stash_samples += 1;
+                }
+            }
+            "write" | "write_batch" => {
+                t.writes += cells;
+                t.write_ns += ns;
+            }
+            _ => t.other_ns += ns,
+        }
+        if let Some(f) = self.file.as_mut() {
+            let o = |x: Option<u64>| x.map(|v| v.to_string()).unwrap_or_default();
+            writeln!(f, "{},{},{op},{ns},{},{},{structure}", self.query, self.phase.label(), o(before), o(after)).ok();
+        }
+    }
+
+    /// The `trace` summary line (per query, per phase), or None without --trace.
+    fn summary(&mut self, scheme: &str, kind: &str, queries: usize) -> Option<String> {
+        if !self.enabled {
+            return None;
+        }
+        if let Some(f) = self.file.as_mut() {
+            f.flush().ok();
+        }
+        let q = queries.max(1) as f64;
+        let us = |ns: u128, n: u64| if n == 0 { 0.0 } else { ns as f64 / n as f64 / 1e3 };
+        let ms_q = |ns: u128| ns as f64 / q / 1e6;
+        let mean_stash = |t: &PhaseTotals| if t.stash_samples == 0 { 0.0 } else { t.stash_sum as f64 / t.stash_samples as f64 };
+        let [r, p] = &self.totals;
+        let sam_ns = |t: &PhaseTotals| t.read_ns + t.write_ns + t.other_ns;
+        Some(format!(
+            "trace scheme={scheme} kind={kind} queries={queries} \
+             real_reads_per_query={:.1} real_writes_per_query={:.1} real_read_us={:.1} real_write_us={:.1} \
+             real_other_ms_per_query={:.3} real_client_ms_per_query={:.3} real_wall_ms_per_query={:.3} \
+             pad_reads_per_query={:.1} pad_read_us={:.1} pad_wall_ms_per_query={:.3} \
+             stash_mean_real={:.1} stash_max_real={} stash_mean_pad={:.1} stash_max_pad={}",
+            r.reads as f64 / q,
+            r.writes as f64 / q,
+            us(r.read_ns, r.reads),
+            us(r.write_ns, r.writes),
+            ms_q(r.other_ns),
+            ms_q(r.wall_ns.saturating_sub(sam_ns(r))),
+            ms_q(r.wall_ns),
+            p.reads as f64 / q,
+            us(p.read_ns, p.reads),
+            ms_q(p.wall_ns),
+            mean_stash(r),
+            r.stash_max,
+            mean_stash(p),
+            p.stash_max,
+        ))
+    }
+}
+
+/// Forwards every SAM operation, timing it and sampling the stash when tracing.
+struct Traced<'a, S> {
+    sam: &'a mut S,
+    t: &'a mut Tracer,
+}
+
+impl<S: Sam> Traced<'_, S> {
+    fn stash(&self) -> Option<u64> {
+        self.sam.stats().stash.map(|s| s.current)
+    }
+
+    fn timed<R>(&mut self, op: &str, cells: u64, structure: &str, f: impl FnOnce(&mut S) -> R) -> R {
+        if !self.t.enabled {
+            return f(self.sam);
+        }
+        let before = self.stash();
+        let clock = Instant::now();
+        let r = f(self.sam);
+        let ns = clock.elapsed().as_nanos();
+        let after = self.stash();
+        self.t.record(op, cells, ns, before, after, structure);
+        r
+    }
+}
+
+impl<S: Sam> SingleAccessMachine<Cell> for Traced<'_, S> {
+    fn alloc(&mut self, class: MemoryClass, structure: &'static str) -> Address {
+        self.timed("alloc", 0, structure, |s| s.alloc(class, structure))
+    }
+
+    fn write(&mut self, address: Address, value: Cell, structure: &'static str) -> Result<(), SamError> {
+        self.timed("write", 1, structure, |s| s.write(address, value, structure))
+    }
+
+    fn write_batch(&mut self, writes: Vec<(Address, Cell)>, structure: &'static str) -> Result<(), SamError> {
+        let n = writes.len() as u64;
+        self.timed("write_batch", n, structure, |s| s.write_batch(writes, structure))
+    }
+
+    fn read(&mut self, address: Address, structure: &'static str) -> Result<Option<Cell>, SamError> {
+        self.timed("read", 0, structure, |s| s.read(address, structure))
+    }
+
+    fn retire(&mut self, address: Address) {
+        self.sam.retire(address)
+    }
+
+    fn flush(&mut self, paths: usize, structure: &'static str) -> Result<(), SamError> {
+        self.timed("flush", 0, structure, |s| s.flush(paths, structure))
+    }
+
+    fn stats(&self) -> &Stats {
+        self.sam.stats()
+    }
+
+    fn reset_stash_maximum(&mut self) {
+        self.sam.reset_stash_maximum()
+    }
 }
