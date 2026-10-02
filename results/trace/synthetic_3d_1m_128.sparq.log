@@ -1,0 +1,9 @@
+config dataset=synthetic_3d_1m_128 d=3 N=1000000 n=128x128x128 values=hash16 queries=20 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=sparq objects=13058919 entries=13058919 extra=none build_s=6.41 max_fanin=1 heights=7x7x7
+budget scheme=sparq kind=group+semi analytic_reads=4941
+storage scheme=sparq allocated=13058919 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
+cells scheme=sparq block_bytes=256 max_root=54 max_node=0 max_kids=0
+install scheme=sparq capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 evict_paths=2 install_s=57.76 install_max_stash=0
+result scheme=sparq kind=group+semi mode=crypto queries=20 budget=4941 real_mean=339.6 real_var=83444.0 real_min=7 real_max=983 win10_max=417.7 win100_max=NaN padded_per_query=4941.0 overflows=0 rounds_mean=20.9 rounds_max=23 writes_per_query=339.6 ops_mean=679.2 ops_var=333776.2 ops_min=14 ops_max=1966 ops_win100_max=NaN ms_per_query=12247.502 max_stash=115 checked=0 mismatches=0
+trace scheme=sparq kind=group+semi queries=20 real_reads_per_query=339.6 real_writes_per_query=339.6 real_read_us=2480.2 real_write_us=3.0 real_other_ms_per_query=0.022 real_client_ms_per_query=0.497 real_wall_ms_per_query=843.813 pad_reads_per_query=4601.4 pad_read_us=2477.3 pad_wall_ms_per_query=11403.689 stash_mean_real=0.9 stash_max_real=41 stash_mean_pad=0.0 stash_max_pad=115
+sparq_schedule max_level_ratio=1.000 level_overflows=0

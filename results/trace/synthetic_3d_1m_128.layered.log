@@ -1,0 +1,8 @@
+config dataset=synthetic_3d_1m_128 d=3 N=1000000 n=128x128x128 values=hash16 queries=20 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
+build scheme=layered objects=9212836 entries=6594357 extra=copies:0/seg:0/wav:0/bst:257 build_s=4.93 max_fanin=casc:13/dims:1x13/wav:0 heights=skel:7x7/bst:8/seg:0/wav:16 sigma=65536
+budget scheme=layered kind=group analytic_reads=972
+storage scheme=layered allocated=9212836 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
+cells scheme=layered block_bytes=256 max_root=103 max_node=114 max_kids=110
+install scheme=layered capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 evict_paths=2 install_s=80.31 install_max_stash=0
+result scheme=layered kind=group mode=crypto queries=20 budget=972 real_mean=147.9 real_var=4462.1 real_min=10 real_max=278 win10_max=157.3 win100_max=NaN padded_per_query=972.0 overflows=0 rounds_mean=24.2 rounds_max=26 writes_per_query=171.3 ops_mean=319.3 ops_var=20394.4 ops_min=20 ops_max=581 ops_win100_max=NaN ms_per_query=2068.648 max_stash=10 checked=0 mismatches=0
+trace scheme=layered kind=group queries=20 real_reads_per_query=147.9 real_writes_per_query=171.3 real_read_us=2133.8 real_write_us=2.8 real_other_ms_per_query=0.011 real_client_ms_per_query=0.190 real_wall_ms_per_query=316.371 pad_reads_per_query=824.0 pad_read_us=2125.9 pad_wall_ms_per_query=1752.276 stash_mean_real=1.1 stash_max_real=10 stash_mean_pad=0.0 stash_max_pad=9
