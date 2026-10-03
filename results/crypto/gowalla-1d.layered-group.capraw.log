@@ -1,7 +1,7 @@
 config dataset=gowalla-1d d=1 N=4454245 n=4454245 values=hash16 queries=100 seed=1 crypto=true block_size=256 branching=30 fanin_cap=raw pad=Analytic
-build scheme=layered objects=13362737 entries=4454246 extra=copies:0/seg:0/wav:0/bst:8908491 build_s=4.42 max_fanin=casc:1/dims:/wav:0 heights=skel:/bst:23/seg:0/wav:16 sigma=65536
+build scheme=layered objects=13362737 entries=4454246 extra=copies:0/seg:0/wav:0/bst:8908491 build_s=5.01 max_fanin=casc:1/dims:/wav:0 heights=skel:/bst:23/seg:0/wav:16 sigma=65536
 budget scheme=layered kind=group analytic_reads=50
 storage scheme=layered allocated=13362737 capacity=16777216 bucket_levels=24 block_bytes=256 server_bytes=17179869184 path_bytes=24576
 cells scheme=layered block_bytes=256 max_root=47 max_node=0 max_kids=0
-install scheme=layered capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 evict_paths=2 install_s=57.20 install_max_stash=0
-result scheme=layered kind=group mode=crypto queries=100 budget=50 real_mean=44.3 real_var=11.8 real_min=36 real_max=49 win10_max=46.6 win100_max=44.3 padded_per_query=50.0 overflows=0 rounds_mean=24.2 rounds_max=25 writes_per_query=44.3 ops_mean=88.5 ops_var=47.3 ops_min=72 ops_max=98 ops_win100_max=88.5 ms_per_query=117.473 max_stash=4 checked=100 mismatches=0
+install scheme=layered capacity=16777216 block_bytes=256 bucket_levels=24 path_bytes=24576 evict_paths=2 install_s=57.40 install_max_stash=0
+result scheme=layered kind=group mode=crypto queries=100 budget=50 real_mean=44.3 real_var=11.8 real_min=36 real_max=49 win10_max=46.6 win100_max=44.3 padded_per_query=50.0 overflows=0 rounds_mean=24.2 rounds_max=25 writes_per_query=44.3 ops_mean=88.5 ops_var=47.3 ops_min=72 ops_max=98 ops_win100_max=88.5 ms_per_query=116.752 max_stash=4 checked=100 mismatches=0
